@@ -1,0 +1,12 @@
+{
+  "name": "dentrack",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/Avto9711/dentrack.git",
+  "author": "Angel Torres <avto9711@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -167,3 +167,18 @@ CREATE TABLE public.whatsapp_logs (
 );
 
 CREATE INDEX idx_whatsapp_patient ON public.whatsapp_logs (patient_id);
+
+
+ALTER TABLE patient_treatments
+  ADD COLUMN created_source VARCHAR(20) DEFAULT 'manual'; -- 'visit' | 'manual'
+
+ALTER TABLE patient_treatments
+  ADD COLUMN diagnostic_notes TEXT NULL;
+
+-- Already covered:
+ALTER TABLE patient_treatments
+  ALTER COLUMN proposed_in_visit_id DROP NOT NULL;
+
+ALTER TABLE patient_treatments
+  ALTER COLUMN completed_in_visit_id DROP NOT NULL;
+
