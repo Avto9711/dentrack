@@ -92,8 +92,8 @@ const PATIENT_TREATMENT_SELECT = `
   patient_id,
   treatment_id,
   status,
-  proposed_in_visit,
-  completed_in_visit,
+  proposed_in_visit_id,
+  completed_in_visit_id,
   proposed_price,
   final_price,
   notes,
@@ -118,7 +118,7 @@ const BUDGET_SELECT = `
     budget_id,
     patient_treatment_id,
     agreed_price,
-    patient_treatments:${PATIENT_TREATMENT_SELECT}
+    patient_treatments(${PATIENT_TREATMENT_SELECT})
   )
 `;
 

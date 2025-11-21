@@ -68,12 +68,23 @@ export function AddPatientModal({ isOpen, onDismiss }: AddPatientModalProps) {
   const isBusy = mutation.isPending;
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onDismiss} initialBreakpoint={0.9} breakpoints={[0, 0.8]}>
+    <IonModal
+      isOpen={isOpen}
+      onDidDismiss={onDismiss}
+      initialBreakpoint={0.8}
+      breakpoints={[0, 0.5, 0.8, 1]}
+      handleBehavior="cycle"
+    >
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={onDismiss}>Cancelar</IonButton>
+          </IonButtons>
           <IonTitle>Nuevo paciente</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onDismiss}>Cerrar</IonButton>
+            <IonButton onClick={handleSave} disabled={isBusy} strong>
+              Guardar
+            </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -117,13 +128,6 @@ export function AddPatientModal({ isOpen, onDismiss }: AddPatientModalProps) {
           </IonItem>
         </IonList>
       </IonContent>
-      <IonToolbar>
-        <IonButtons slot="end">
-          <IonButton onClick={handleSave} disabled={isBusy} strong>
-            Guardar
-          </IonButton>
-        </IonButtons>
-      </IonToolbar>
     </IonModal>
   );
 }

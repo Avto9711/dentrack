@@ -81,9 +81,14 @@ export function CompleteTreatmentModal({ treatment, isOpen, onDismiss, visits }:
     <IonModal isOpen={isOpen} onDidDismiss={onDismiss} initialBreakpoint={0.9} breakpoints={[0, 0.9]}>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={onDismiss}>Cerrar</IonButton>
+          </IonButtons>
           <IonTitle>Marcar como completado</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onDismiss}>Cerrar</IonButton>
+            <IonButton strong onClick={handleSave} disabled={mutation.isPending}>
+              Guardar
+            </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -123,13 +128,6 @@ export function CompleteTreatmentModal({ treatment, isOpen, onDismiss, visits }:
           Actualiza el precio final y notas antes de enviar al paciente.
         </IonText>
       </IonContent>
-      <IonToolbar>
-        <IonButtons slot="end">
-          <IonButton strong onClick={handleSave} disabled={mutation.isPending}>
-            Guardar
-          </IonButton>
-        </IonButtons>
-      </IonToolbar>
     </IonModal>
   );
 }

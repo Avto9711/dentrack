@@ -76,7 +76,6 @@ export function PatientDetailPage() {
     return (
       <PageLayout
         title="Paciente"
-        hideTabs
         toolbarStartSlot={<IonButton fill="clear" onClick={() => navigate(-1)}><IonIcon icon={arrowBackOutline} /></IonButton>}
       >
         <IonText className="ion-padding" color="medium">
@@ -89,7 +88,6 @@ export function PatientDetailPage() {
   return (
     <PageLayout
       title={patient.fullName}
-      hideTabs
       toolbarStartSlot={
         <IonButton fill="clear" onClick={() => navigate(-1)}>
           <IonIcon icon={arrowBackOutline} />

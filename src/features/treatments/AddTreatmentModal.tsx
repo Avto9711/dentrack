@@ -89,12 +89,23 @@ export function AddTreatmentModal({ patientId, isOpen, onDismiss, visits }: AddT
   }
 
   return (
-    <IonModal isOpen={isOpen} onDidDismiss={onDismiss} onWillPresent={resetForm} initialBreakpoint={0.9} breakpoints={[0, 0.9]}>
+    <IonModal
+      isOpen={isOpen}
+      onDidDismiss={onDismiss}
+      onWillPresent={resetForm}
+      initialBreakpoint={0.9}
+      breakpoints={[0, 0.9]}
+    >
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={onDismiss}>Cancelar</IonButton>
+          </IonButtons>
           <IonTitle>Agregar tratamiento</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onDismiss}>Cerrar</IonButton>
+            <IonButton strong onClick={handleSave} disabled={mutation.isPending}>
+              Guardar
+            </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -143,13 +154,6 @@ export function AddTreatmentModal({ patientId, isOpen, onDismiss, visits }: AddT
           </IonItem>
         </IonList>
       </IonContent>
-      <IonToolbar>
-        <IonButtons slot="end">
-          <IonButton strong onClick={handleSave} disabled={mutation.isPending}>
-            Guardar
-          </IonButton>
-        </IonButtons>
-      </IonToolbar>
     </IonModal>
   );
 }

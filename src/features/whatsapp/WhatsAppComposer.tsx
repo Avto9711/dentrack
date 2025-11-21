@@ -61,9 +61,14 @@ export function WhatsAppComposer({
     <IonModal isOpen={isOpen} onDidDismiss={onDismiss} onWillPresent={resetState} initialBreakpoint={0.75} breakpoints={[0, 0.75, 1]}>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={onDismiss}>Cancelar</IonButton>
+          </IonButtons>
           <IonTitle>WhatsApp para {patient.firstName}</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onDismiss}>Cerrar</IonButton>
+            <IonButton disabled={!hasPhone} onClick={handleOpenWhatsApp} strong>
+              Abrir WhatsApp
+            </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -96,13 +101,6 @@ export function WhatsAppComposer({
           </IonText>
         )}
       </IonContent>
-      <IonToolbar>
-        <IonButtons slot="end">
-          <IonButton disabled={!hasPhone} onClick={handleOpenWhatsApp} strong>
-            Abrir WhatsApp
-          </IonButton>
-        </IonButtons>
-      </IonToolbar>
     </IonModal>
   );
 }

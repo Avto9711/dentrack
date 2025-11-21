@@ -44,9 +44,14 @@ export function BudgetDetailModal({ budget, isOpen, onDismiss }: BudgetDetailMod
       >
         <IonHeader>
           <IonToolbar>
+            <IonButtons slot="start">
+              <IonButton onClick={onDismiss}>Cerrar</IonButton>
+            </IonButtons>
             <IonTitle>Presupuesto</IonTitle>
             <IonButtons slot="end">
-              <IonButton onClick={onDismiss}>Cerrar</IonButton>
+              <IonButton strong disabled={!budget.patient?.phone} onClick={() => setShowComposer(true)}>
+                Enviar WhatsApp
+              </IonButton>
             </IonButtons>
           </IonToolbar>
         </IonHeader>
@@ -94,17 +99,6 @@ export function BudgetDetailModal({ budget, isOpen, onDismiss }: BudgetDetailMod
             Total: {total}
           </IonText>
         </IonContent>
-        <IonToolbar>
-          <IonButtons slot="end">
-            <IonButton
-              strong
-              disabled={!budget.patient?.phone}
-              onClick={() => setShowComposer(true)}
-            >
-              Enviar WhatsApp
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
       </IonModal>
       {budget.patient && (
         <WhatsAppComposer

@@ -76,9 +76,14 @@ export function CreateBudgetModal({ patientId, treatments, isOpen, onDismiss }: 
     <IonModal isOpen={isOpen} onDidDismiss={onDismiss} onWillPresent={resetForm} initialBreakpoint={0.95} breakpoints={[0, 0.95]}>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonButton onClick={onDismiss}>Cerrar</IonButton>
+          </IonButtons>
           <IonTitle>Nuevo presupuesto</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onDismiss}>Cerrar</IonButton>
+            <IonButton strong onClick={handleSave} disabled={mutation.isPending}>
+              Generar
+            </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -114,13 +119,6 @@ export function CreateBudgetModal({ patientId, treatments, isOpen, onDismiss }: 
         </IonList>
         <IonText className="ion-padding">Total estimado: {formatCurrency(total)}</IonText>
       </IonContent>
-      <IonToolbar>
-        <IonButtons slot="end">
-          <IonButton strong onClick={handleSave} disabled={mutation.isPending}>
-            Generar
-          </IonButton>
-        </IonButtons>
-      </IonToolbar>
     </IonModal>
   );
 }
