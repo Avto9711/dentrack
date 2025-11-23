@@ -5,6 +5,7 @@ import { PatientsPage } from '@/pages/PatientsPage';
 import { PatientDetailPage } from '@/pages/PatientDetailPage';
 import { AppointmentsPage } from '@/pages/AppointmentsPage';
 import { BudgetsPage } from '@/pages/BudgetsPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 
 setupIonicReact({ mode: 'ios' });
 
@@ -18,6 +19,7 @@ export function App() {
           <Route path="/patients/:id" element={<PatientDetailPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

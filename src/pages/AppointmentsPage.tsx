@@ -13,6 +13,7 @@ import {
 } from '@ionic/react';
 import { addOutline } from 'ionicons/icons';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { fetchAppointments, type AppointmentFilter } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { PageLayout } from '@/components/PageLayout';
@@ -26,6 +27,7 @@ const segments = [
 ] as const;
 
 export function AppointmentsPage() {
+  const navigate = useNavigate();
   const [segment, setSegment] = useState<(typeof segments)[number]['value']>('today');
   const [showModal, setShowModal] = useState(false);
 
@@ -80,7 +82,11 @@ export function AppointmentsPage() {
       )}
       <IonList inset>
         {appointments.map((appointment) => (
-          <IonItem key={appointment.id}>
+          <IonItem
+            key={appointment.id}
+            button={Boolean(appointment.patientId)}
+            onClick={() => appointment.patientId && navigate(`/patients/${appointment.patientId}`)}
+          >
             <IonLabel>
               <h2>{appointment.patient?.fullName ?? 'Paciente'}</h2>
               <p>{formatDateTime(appointment.startsAt)}</p>

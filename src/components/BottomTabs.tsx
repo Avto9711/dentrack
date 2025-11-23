@@ -1,12 +1,13 @@
-import { IonFooter, IonToolbar, IonButtons, IonButton, IonIcon, IonLabel } from '@ionic/react';
+import { IonFooter, IonToolbar, IonButtons, IonButton, IonIcon } from '@ionic/react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { calendarOutline, peopleOutline, speedometerOutline, walletOutline } from 'ionicons/icons';
+import { calendarOutline, peopleOutline, settingsOutline, speedometerOutline, walletOutline } from 'ionicons/icons';
 
 const tabs = [
   { path: '/', label: 'Dashboard', icon: speedometerOutline },
   { path: '/patients', label: 'Pacientes', icon: peopleOutline },
   { path: '/appointments', label: 'Citas', icon: calendarOutline },
   { path: '/budgets', label: 'Presupuestos', icon: walletOutline },
+  { path: '/settings', label: 'Configuración', icon: settingsOutline },
 ];
 
 export function BottomTabs() {
@@ -25,10 +26,10 @@ export function BottomTabs() {
                 fill="clear"
                 color={isActive ? 'primary' : 'medium'}
                 onClick={() => navigate(tab.path)}
+                aria-label={tab.label}
                 style={{ flexDirection: 'column', flex: 1 }}
               >
                 <IonIcon icon={tab.icon} />
-                <IonLabel style={{ fontSize: '0.75rem' }}>{tab.label}</IonLabel>
               </IonButton>
             );
           })}

@@ -5,7 +5,10 @@ import type {
   Budget,
   BudgetItem,
   BudgetStatus,
+  GumStatus,
+  OralHygieneLevel,
   Patient,
+  PatientEvaluation,
   PatientSummary,
   PatientTreatment,
   PatientTreatmentWithPatient,
@@ -19,6 +22,7 @@ export interface CreatePatientInput {
   lastName: string;
   phone?: string;
   email?: string;
+  address?: string;
   notes?: string;
   birthDate?: string;
   gender?: string;
@@ -61,6 +65,44 @@ export interface PatientDetailPayload {
   treatments: PatientTreatment[];
   appointments: Appointment[];
   budgets: Budget[];
+  evaluations: PatientEvaluation[];
+}
+
+export interface PatientEvaluationInput {
+  evaluationDate?: string;
+  hasSystemicDiseases: boolean;
+  systemicDiseases?: string | null;
+  hasAllergies: boolean;
+  allergies?: string | null;
+  currentMedications?: string | null;
+  hadSurgeries: boolean;
+  surgeries?: string | null;
+  habits?: string | null;
+  consultReason?: string | null;
+  oralHygiene?: OralHygieneLevel | null;
+  gumStatus?: GumStatus | null;
+  hasCaries: boolean;
+  hasPlaque: boolean;
+  otherObservations?: string | null;
+  dentogram?: Record<string, unknown> | null;
+  diagnosis?: string | null;
+  planProphylaxis: boolean;
+  planObturation: boolean;
+  planEndodontics: boolean;
+  planOrthodontics: boolean;
+  planPeriodontics: boolean;
+  planOralSurgery: boolean;
+  planProsthesis: boolean;
+  planOther?: string | null;
+  dentistSignature?: string | null;
+}
+
+export interface CreatePatientEvaluationInput extends PatientEvaluationInput {
+  patientId: string;
+}
+
+export interface UpdatePatientEvaluationInput extends PatientEvaluationInput {
+  evaluationId: string;
 }
 
 const PATIENT_COLUMNS = `
@@ -69,6 +111,7 @@ const PATIENT_COLUMNS = `
   last_name,
   phone,
   email,
+  address,
   notes,
   birth_date,
   gender,
@@ -134,6 +177,40 @@ const APPOINTMENT_SELECT = `
   patients:patients(${PATIENT_COLUMNS})
 `;
 
+const PATIENT_EVALUATION_SELECT = `
+  id,
+  patient_id,
+  dentist_id,
+  evaluation_date,
+  has_systemic_diseases,
+  systemic_diseases,
+  has_allergies,
+  allergies,
+  current_medications,
+  had_surgeries,
+  surgeries,
+  habits,
+  consult_reason,
+  oral_hygiene,
+  gum_status,
+  has_caries,
+  has_plaque,
+  other_observations,
+  dentogram,
+  diagnosis,
+  plan_prophylaxis,
+  plan_obturation,
+  plan_endodontics,
+  plan_orthodontics,
+  plan_periodontics,
+  plan_oral_surgery,
+  plan_prosthesis,
+  plan_other,
+  dentist_signature,
+  created_at,
+  updated_at
+`;
+
 function mapPatient(row: any): Patient {
   return {
     id: row.id,
@@ -142,9 +219,57 @@ function mapPatient(row: any): Patient {
     fullName: `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim(),
     phone: row.phone,
     email: row.email,
+    address: row.address,
     notes: row.notes,
     birthDate: row.birth_date,
     gender: row.gender,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapPatientEvaluation(row: any): PatientEvaluation {
+  let dentogramData: Record<string, unknown> | null = null;
+  if (row.dentogram && typeof row.dentogram === 'object') {
+    dentogramData = row.dentogram;
+  } else if (typeof row.dentogram === 'string') {
+    try {
+      dentogramData = JSON.parse(row.dentogram);
+    } catch (error) {
+      console.warn('Failed to parse dentogram JSON', error);
+      dentogramData = null;
+    }
+  }
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    dentistId: row.dentist_id,
+    evaluationDate: row.evaluation_date,
+    hasSystemicDiseases: Boolean(row.has_systemic_diseases),
+    systemicDiseases: row.systemic_diseases,
+    hasAllergies: Boolean(row.has_allergies),
+    allergies: row.allergies,
+    currentMedications: row.current_medications,
+    hadSurgeries: Boolean(row.had_surgeries),
+    surgeries: row.surgeries,
+    habits: row.habits,
+    consultReason: row.consult_reason,
+    oralHygiene: row.oral_hygiene,
+    gumStatus: row.gum_status,
+    hasCaries: Boolean(row.has_caries),
+    hasPlaque: Boolean(row.has_plaque),
+    otherObservations: row.other_observations,
+    dentogram: dentogramData,
+    diagnosis: row.diagnosis,
+    planProphylaxis: Boolean(row.plan_prophylaxis),
+    planObturation: Boolean(row.plan_obturation),
+    planEndodontics: Boolean(row.plan_endodontics),
+    planOrthodontics: Boolean(row.plan_orthodontics),
+    planPeriodontics: Boolean(row.plan_periodontics),
+    planOralSurgery: Boolean(row.plan_oral_surgery),
+    planProsthesis: Boolean(row.plan_prosthesis),
+    planOther: row.plan_other,
+    dentistSignature: row.dentist_signature,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -260,6 +385,7 @@ export async function createPatient(input: CreatePatientInput): Promise<Patient>
     last_name: input.lastName.trim(),
     phone: input.phone?.trim() || null,
     email: input.email?.trim() || null,
+    address: input.address?.trim() || null,
     notes: input.notes || null,
     birth_date: input.birthDate || null,
     gender: input.gender || null,
@@ -271,7 +397,7 @@ export async function createPatient(input: CreatePatientInput): Promise<Patient>
 }
 
 export async function fetchPatientDetail(patientId: string): Promise<PatientDetailPayload> {
-  const [patientRes, treatmentsRes, appointmentsRes, budgetsRes] = await Promise.all([
+  const [patientRes, treatmentsRes, appointmentsRes, budgetsRes, evaluationsRes] = await Promise.all([
     supabase.from('patients').select(PATIENT_COLUMNS).eq('id', patientId).single(),
     supabase
       .from('patient_treatments')
@@ -288,19 +414,99 @@ export async function fetchPatientDetail(patientId: string): Promise<PatientDeta
       .select(BUDGET_SELECT)
       .eq('patient_id', patientId)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('patient_evaluations')
+      .select(PATIENT_EVALUATION_SELECT)
+      .eq('patient_id', patientId)
+      .order('evaluation_date', { ascending: false })
+      .order('created_at', { ascending: false }),
   ]);
 
   if (patientRes.error) throw patientRes.error;
   if (treatmentsRes.error) throw treatmentsRes.error;
   if (appointmentsRes.error) throw appointmentsRes.error;
   if (budgetsRes.error) throw budgetsRes.error;
+  if (evaluationsRes.error) throw evaluationsRes.error;
 
   return {
     patient: mapPatient(patientRes.data),
     treatments: (treatmentsRes.data ?? []).map(mapPatientTreatment),
     appointments: (appointmentsRes.data ?? []).map(mapAppointment),
     budgets: (budgetsRes.data ?? []).map(mapBudget),
+    evaluations: (evaluationsRes.data ?? []).map(mapPatientEvaluation),
   };
+}
+
+function buildEvaluationPayload(input: PatientEvaluationInput) {
+  return {
+    has_systemic_diseases: input.hasSystemicDiseases,
+    systemic_diseases: input.systemicDiseases || null,
+    has_allergies: input.hasAllergies,
+    allergies: input.allergies || null,
+    current_medications: input.currentMedications || null,
+    had_surgeries: input.hadSurgeries,
+    surgeries: input.surgeries || null,
+    habits: input.habits || null,
+    consult_reason: input.consultReason || null,
+    oral_hygiene: input.oralHygiene || null,
+    gum_status: input.gumStatus || null,
+    has_caries: input.hasCaries,
+    has_plaque: input.hasPlaque,
+    other_observations: input.otherObservations || null,
+    dentogram: input.dentogram ?? null,
+    diagnosis: input.diagnosis || null,
+    plan_prophylaxis: input.planProphylaxis,
+    plan_obturation: input.planObturation,
+    plan_endodontics: input.planEndodontics,
+    plan_orthodontics: input.planOrthodontics,
+    plan_periodontics: input.planPeriodontics,
+    plan_oral_surgery: input.planOralSurgery,
+    plan_prosthesis: input.planProsthesis,
+    plan_other: input.planOther || null,
+    dentist_signature: input.dentistSignature || null,
+  };
+}
+
+export async function createPatientEvaluation(
+  input: CreatePatientEvaluationInput
+): Promise<PatientEvaluation> {
+  const payload: Record<string, unknown> = {
+    patient_id: input.patientId,
+    ...buildEvaluationPayload(input),
+  };
+  if (input.evaluationDate) {
+    payload.evaluation_date = input.evaluationDate;
+  }
+
+  const { data, error } = await supabase
+    .from('patient_evaluations')
+    .insert(payload)
+    .select(PATIENT_EVALUATION_SELECT)
+    .single();
+
+  if (error) throw error;
+  return mapPatientEvaluation(data);
+}
+
+export async function updatePatientEvaluation(
+  input: UpdatePatientEvaluationInput
+): Promise<PatientEvaluation> {
+  const { evaluationId, ...rest } = input;
+  const payload = buildEvaluationPayload(rest);
+  const updatePayload: Record<string, unknown> = { ...payload };
+  if (rest.evaluationDate) {
+    updatePayload.evaluation_date = rest.evaluationDate;
+  }
+
+  const { data, error } = await supabase
+    .from('patient_evaluations')
+    .update(updatePayload)
+    .eq('id', evaluationId)
+    .select(PATIENT_EVALUATION_SELECT)
+    .single();
+
+  if (error) throw error;
+  return mapPatientEvaluation(data);
 }
 
 export interface AppointmentFilter {

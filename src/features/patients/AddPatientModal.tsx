@@ -30,6 +30,7 @@ const initialState: CreatePatientInput = {
   lastName: '',
   phone: '',
   email: '',
+  address: '',
   notes: '',
   birthDate: '',
   gender: undefined,
@@ -105,6 +106,14 @@ export function AddPatientModal({ isOpen, onDismiss }: AddPatientModalProps) {
           <IonItem>
             <IonLabel position="stacked">Email</IonLabel>
             <IonInput value={form.email} onIonInput={(e) => updateField('email', e.detail.value ?? '')} type="email" />
+          </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Dirección</IonLabel>
+            <IonTextarea
+              autoGrow
+              value={form.address}
+              onIonInput={(e) => updateField('address', e.detail.value ?? '')}
+            />
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Fecha de nacimiento</IonLabel>

@@ -31,14 +31,17 @@ import { CreateBudgetModal } from '@/features/budgets/CreateBudgetModal';
 import { BudgetDetailModal } from '@/features/budgets/BudgetDetailModal';
 import { WhatsAppComposer } from '@/features/whatsapp/WhatsAppComposer';
 import { AddAppointmentModal } from '@/features/appointments/AddAppointmentModal';
-import type { Budget, PatientTreatment } from '@/types/domain';
+import type { Budget, PatientEvaluation, PatientTreatment } from '@/types/domain';
 import { openExternalUrl } from '@/lib/platform';
+import { PatientEvaluationModal } from '@/features/evaluations/PatientEvaluationModal';
+import { PatientEvaluationCard } from '@/features/evaluations/PatientEvaluationCard';
 
 const segments = [
   { value: 'visits', label: 'Visitas' },
   { value: 'treatments', label: 'Tratamientos' },
   { value: 'budgets', label: 'Presupuestos' },
   { value: 'contact', label: 'Contacto' },
+  { value: 'evaluations', label: 'Evaluaciones' },
 ] as const;
 
 export function PatientDetailPage() {
@@ -51,6 +54,8 @@ export function PatientDetailPage() {
   const [showWhatsApp, setShowWhatsApp] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
+  const [isEvaluationModalOpen, setEvaluationModalOpen] = useState(false);
+  const [evaluationToEdit, setEvaluationToEdit] = useState<PatientEvaluation | null>(null);
 
   const detailQuery = useQuery({
     queryKey: queryKeys.patientDetail(id ?? ''),
@@ -67,6 +72,7 @@ export function PatientDetailPage() {
   const appointments = detail?.appointments ?? [];
   const treatments = detail?.treatments ?? [];
   const budgets = detail?.budgets ?? [];
+  const evaluations = detail?.evaluations ?? [];
   const visitsById = new Map(appointments.map((visit) => [visit.id, visit]));
 
   const pendingTreatments = treatments.filter((treatment) => treatment.status !== 'completed');
@@ -83,6 +89,16 @@ export function PatientDetailPage() {
         </IonText>
       </PageLayout>
     );
+  }
+
+  function openEvaluationModal(evaluation?: PatientEvaluation | null) {
+    setEvaluationToEdit(evaluation ?? null);
+    setEvaluationModalOpen(true);
+  }
+
+  function closeEvaluationModal() {
+    setEvaluationModalOpen(false);
+    setEvaluationToEdit(null);
   }
 
   return (
@@ -120,6 +136,25 @@ export function PatientDetailPage() {
                 <IonButton fill="outline" size="small" onClick={() => setShowWhatsApp(true)}>
                   <IonIcon icon={chatboxEllipsesOutline} slot="start" /> WhatsApp
                 </IonButton>
+              </IonCol>
+            </IonRow>
+            <IonRow>
+              <IonCol size="12" sizeMd="6">
+                <IonText color="medium">
+                  <strong>Dirección:</strong> {patient.address || 'No registrada'}
+                </IonText>
+              </IonCol>
+              <IonCol size="12" sizeMd="6">
+                <IonText color="medium">
+                  <strong>Fecha de nacimiento:</strong> {patient.birthDate || 'Sin dato'}
+                </IonText>
+              </IonCol>
+            </IonRow>
+            <IonRow>
+              <IonCol size="12" sizeMd="6">
+                <IonText color="medium">
+                  <strong>Género:</strong> {patient.gender || 'Sin especificar'}
+                </IonText>
               </IonCol>
             </IonRow>
             <IonRow>
@@ -263,6 +298,22 @@ export function PatientDetailPage() {
         </IonCard>
       )}
 
+      {segment === 'evaluations' && (
+        <>
+          <IonButton expand="block" onClick={() => openEvaluationModal(null)}>
+            Registrar evaluación
+          </IonButton>
+          {evaluations.length === 0 && (
+            <IonText className="ion-padding" color="medium">
+              Aún no hay evaluaciones registradas para este paciente.
+            </IonText>
+          )}
+          {evaluations.map((evaluation) => (
+            <PatientEvaluationCard key={evaluation.id} evaluation={evaluation} onEdit={openEvaluationModal} />
+          ))}
+        </>
+      )}
+
       <AddTreatmentModal
         patientId={patient.id}
         isOpen={isAddTreatmentOpen}
@@ -296,6 +347,12 @@ export function PatientDetailPage() {
         isOpen={showWhatsApp}
         onDismiss={() => setShowWhatsApp(false)}
         summary={`Seguimiento a ${patient.fullName}`}
+      />
+      <PatientEvaluationModal
+        patientId={patient.id}
+        evaluation={evaluationToEdit}
+        isOpen={isEvaluationModalOpen}
+        onDismiss={closeEvaluationModal}
       />
     </PageLayout>
   );
