@@ -779,13 +779,26 @@ export async function fetchPendingTreatments(
   }));
 }
 
-export async function fetchBudgets(patientId?: string): Promise<Budget[]> {
+export interface BudgetFilter {
+  patientId?: string;
+  validStatus?: 'valid' | 'expired';
+}
+
+export async function fetchBudgets(filter: BudgetFilter = {}): Promise<Budget[]> {
   let query = supabase.from('budgets').select(BUDGET_SELECT).order('created_at', {
     ascending: false,
   });
 
-  if (patientId) {
-    query = query.eq('patient_id', patientId);
+  if (filter.patientId) {
+    query = query.eq('patient_id', filter.patientId);
+  }
+
+  if (filter.validStatus === 'valid') {
+    query = query.or('valid_until.is.null,valid_until.gte.' + new Date().toISOString());
+  }
+
+  if (filter.validStatus === 'expired') {
+    query = query.not('valid_until', 'is', null).lt('valid_until', new Date().toISOString());
   }
 
   const { data, error } = await query;

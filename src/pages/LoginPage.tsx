@@ -18,7 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 export function LoginPage() {
   const { login } = useAuth();
   const [presentToast] = useIonToast();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setSubmitting] = useState(false);
 
@@ -27,7 +27,7 @@ export function LoginPage() {
     if (isSubmitting) return;
     try {
       setSubmitting(true);
-      await login(username, password);
+      await login(email, password);
       setPassword('');
     } catch (error) {
       presentToast({
@@ -51,12 +51,12 @@ export function LoginPage() {
         <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: '0 auto' }}>
           <IonList inset>
             <IonItem>
-              <IonLabel position="stacked">Usuario</IonLabel>
+              <IonLabel position="stacked">Correo</IonLabel>
               <IonInput
-                value={username}
-                onIonInput={(event) => setUsername(event.detail.value ?? '')}
+                value={email}
+                onIonInput={(event) => setEmail(event.detail.value ?? '')}
                 autofocus
-                autocomplete="username"
+                autocomplete="email"
                 inputmode="email"
                 required
               />
@@ -77,7 +77,7 @@ export function LoginPage() {
           </IonButton>
           <IonText color="medium">
             <p style={{ marginTop: 16 }}>
-              Los administradores crean a los dentistas desde la base de datos. Solicita tus credenciales al equipo.
+              Usa las credenciales de Supabase Auth. Si necesitas acceso solicita al administrador que cree tu usuario.
             </p>
           </IonText>
         </form>

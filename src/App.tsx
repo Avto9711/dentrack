@@ -12,7 +12,7 @@ import { LoginPage } from '@/pages/LoginPage';
 setupIonicReact({ mode: 'ios' });
 
 export function App() {
-  const { profile, isBootstrapping } = useAuth();
+  const { profile, session, isBootstrapping } = useAuth();
 
   if (isBootstrapping) {
     return (
@@ -28,7 +28,7 @@ export function App() {
 
   return (
     <IonApp>
-      {profile ? (
+      {session && profile ? (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
