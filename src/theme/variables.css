@@ -1,21 +1,36 @@
 :root {
-  --ion-color-primary: #00a7b5;
-  --ion-color-primary-rgb: 0, 167, 181;
+  --ion-color-primary: #2fbdb9;
+  --ion-color-primary-rgb: 47, 189, 185;
   --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-shade: #00929e;
-  --ion-color-primary-tint: #1ab0bd;
+  --ion-color-primary-shade: #28a7a3;
+  --ion-color-primary-tint: #46c5c1;
 
-  --ion-color-secondary: #f0950d;
-  --ion-color-secondary-rgb: 240, 149, 13;
-  --ion-color-secondary-contrast: #ffffff;
-  --ion-color-secondary-shade: #d4810b;
-  --ion-color-secondary-tint: #f2a02b;
+  --ion-color-secondary: #f5a171;
+  --ion-color-secondary-rgb: 245, 161, 113;
+  --ion-color-secondary-contrast: #1f1f1f;
+  --ion-color-secondary-shade: #d68c63;
+  --ion-color-secondary-tint: #f7ad82;
 
-  --ion-color-tertiary: #3dc2ff;
-  --ion-color-tertiary-rgb: 61, 194, 255;
-  --ion-color-tertiary-contrast: #000000;
-  --ion-color-tertiary-shade: #36abe0;
-  --ion-color-tertiary-tint: #50c8ff;
+  --ion-color-tertiary: #7c8db5;
+  --ion-color-tertiary-rgb: 124, 141, 181;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-shade: #6d7a9f;
+  --ion-color-tertiary-tint: #8b9ac0;
 
-  --ion-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ion-color-success: #3fb08a;
+  --ion-color-success-contrast: #ffffff;
+
+  --ion-color-warning: #f2c94c;
+  --ion-color-warning-contrast: #3b3200;
+
+  --ion-color-medium: #6b7b8d;
+  --ion-color-light: #f4f6f8;
+
+  --ion-font-family: 'Inter', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --app-surface-card: #ffffff;
+  --app-surface-muted: #eef6f7;
+  --app-text-heading: #1f2a37;
+  --app-text-body: #4a5568;
+  --app-border-soft: #dde6ea;
 }

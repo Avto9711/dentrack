@@ -20,7 +20,7 @@ interface PatientListItemProps {
 export function PatientListItem({ patient, onSelect, onCall }: PatientListItemProps) {
   const initials = `${patient.firstName?.[0] ?? ''}${patient.lastName?.[0] ?? ''}`.toUpperCase();
   return (
-    <IonItem detail={false} button onClick={() => onSelect(patient.id)}>
+    <IonItem lines="none" className="subtle-card" detail={false} button onClick={() => onSelect(patient.id)}>
       <IonAvatar slot="start">
         <div className="avatar-circle">{initials}</div>
       </IonAvatar>

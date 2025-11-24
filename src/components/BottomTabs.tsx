@@ -27,7 +27,7 @@ export function BottomTabs() {
                 color={isActive ? 'primary' : 'medium'}
                 onClick={() => navigate(tab.path)}
                 aria-label={tab.label}
-                style={{ flexDirection: 'column', flex: 1 }}
+                style={{ flexDirection: 'column', flex: 1, fontSize: 12, gap: 4 }}
               >
                 <IonIcon icon={tab.icon} />
               </IonButton>

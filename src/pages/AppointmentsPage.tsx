@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
   IonSegment,
   IonSegmentButton,
   IonLabel,
@@ -10,7 +14,10 @@ import {
   IonFab,
   IonFabButton,
   IonIcon,
+  IonRefresher,
+  IonRefresherContent,
 } from '@ionic/react';
+import type { RefresherEventDetail } from '@ionic/react';
 import { addOutline } from 'ionicons/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -57,44 +64,52 @@ export function AppointmentsPage() {
 
   const appointments = appointmentsQuery.data ?? [];
 
+  function handleRefresh(event: CustomEvent<RefresherEventDetail>) {
+    appointmentsQuery.refetch().finally(() => event.detail.complete());
+  }
+
   return (
-    <PageLayout
-      title="Citas"
-      toolbarEndSlot={
-        <IonSegment
-          value={segment}
-          onIonChange={(event) =>
-            setSegment((event.detail.value as (typeof segments)[number]['value']) ?? 'today')
-          }
-        >
-          {segments.map((item) => (
-            <IonSegmentButton key={item.value} value={item.value}>
-              <IonLabel>{item.label}</IonLabel>
-            </IonSegmentButton>
-          ))}
-        </IonSegment>
-      }
-    >
-      {appointments.length === 0 && !appointmentsQuery.isLoading && (
-        <IonText className="ion-padding" color="medium">
-          Nada por aquí aún.
-        </IonText>
-      )}
-      <IonList inset>
-        {appointments.map((appointment) => (
-          <IonItem
-            key={appointment.id}
-            button={Boolean(appointment.patientId)}
-            onClick={() => appointment.patientId && navigate(`/patients/${appointment.patientId}`)}
+    <PageLayout title="Citas">
+      <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+        <IonRefresherContent></IonRefresherContent>
+      </IonRefresher>
+      <IonCard className="page-block">
+        <IonCardHeader>
+          <IonSegment
+            value={segment}
+            onIonChange={(event) =>
+              setSegment((event.detail.value as (typeof segments)[number]['value']) ?? 'today')
+            }
           >
-            <IonLabel>
-              <h2>{appointment.patient?.fullName ?? 'Paciente'}</h2>
-              <p>{formatDateTime(appointment.startsAt)}</p>
-            </IonLabel>
-            <IonBadge color="tertiary">{appointment.visitType}</IonBadge>
-          </IonItem>
-        ))}
-      </IonList>
+            {segments.map((item) => (
+              <IonSegmentButton key={item.value} value={item.value}>
+                <IonLabel>{item.label}</IonLabel>
+              </IonSegmentButton>
+            ))}
+          </IonSegment>
+        </IonCardHeader>
+        <IonCardContent>
+          {appointments.length === 0 && !appointmentsQuery.isLoading && (
+            <IonText color="medium">No hay citas en este filtro.</IonText>
+          )}
+          <IonList lines="none" className="flush-list">
+            {appointments.map((appointment) => (
+              <IonItem
+                key={appointment.id}
+                button={Boolean(appointment.patientId)}
+                onClick={() => appointment.patientId && navigate(`/patients/${appointment.patientId}`)}
+                className="subtle-card"
+              >
+                <IonLabel>
+                  <h2>{appointment.patient?.fullName ?? 'Paciente'}</h2>
+                  <p>{formatDateTime(appointment.startsAt)}</p>
+                </IonLabel>
+                <IonBadge color="tertiary">{appointment.visitType}</IonBadge>
+              </IonItem>
+            ))}
+          </IonList>
+        </IonCardContent>
+      </IonCard>
       <IonFab slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton onClick={() => setShowModal(true)}>
           <IonIcon icon={addOutline} />

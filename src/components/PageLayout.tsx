@@ -3,7 +3,7 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonButtons, IonContent } from
 import { BottomTabs } from './BottomTabs';
 
 interface PageLayoutProps {
-  title: string;
+  title?: string;
   children: ReactNode;
   toolbarEndSlot?: ReactNode;
   toolbarStartSlot?: ReactNode;
@@ -22,7 +22,7 @@ export function PageLayout({
       <IonHeader>
         <IonToolbar>
           {toolbarStartSlot && <IonButtons slot="start">{toolbarStartSlot}</IonButtons>}
-          <IonTitle>{title}</IonTitle>
+          {title && <IonTitle>{title}</IonTitle>}
           {toolbarEndSlot && <IonButtons slot="end">{toolbarEndSlot}</IonButtons>}
         </IonToolbar>
       </IonHeader>

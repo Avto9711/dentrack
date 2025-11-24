@@ -14,6 +14,8 @@ import {
   IonGrid,
   IonRow,
   IonCol,
+  IonRefresher,
+  IonRefresherContent,
 } from '@ionic/react';
 import { calendarOutline, checkmarkDoneOutline } from 'ionicons/icons';
 import { useNavigate } from 'react-router-dom';
@@ -23,9 +25,12 @@ import { queryKeys } from '@/lib/queryKeys';
 import { PageLayout } from '@/components/PageLayout';
 import { formatDateTime } from '@/utils/date';
 import { formatCurrency } from '@/utils/money';
+import type { RefresherEventDetail } from '@ionic/react';
+import { useAuth } from '@/context/AuthContext';
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const todayAppointmentsQuery = useQuery({
     queryKey: queryKeys.dashboard.todayAppointments,
     queryFn: fetchTodayAppointments,
@@ -39,9 +44,64 @@ export function DashboardPage() {
   const appointments = todayAppointmentsQuery.data ?? [];
   const pendingTreatments = pendingTreatmentsQuery.data ?? [];
 
+  const summaryMetrics = [
+    {
+      label: 'Citas hoy',
+      value: todayAppointmentsQuery.isLoading ? '—' : appointments.length,
+      action: () => navigate('/appointments'),
+    },
+    {
+      label: 'Pendientes',
+      value: pendingTreatmentsQuery.isLoading ? '—' : pendingTreatments.length,
+      action: () => navigate('/patients'),
+    },
+  ];
+
+  function handleRefresh(event: CustomEvent<RefresherEventDetail>) {
+    Promise.all([todayAppointmentsQuery.refetch(), pendingTreatmentsQuery.refetch()]).finally(() =>
+      event.detail.complete()
+    );
+  }
+
   return (
     <PageLayout title="Dashboard">
+      <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+        <IonRefresherContent></IonRefresherContent>
+      </IonRefresher>
       <IonGrid>
+        <IonRow>
+          <IonCol size="12">
+            <IonCard className="hero-card">
+              <IonCardHeader>
+                <IonCardTitle>
+                  Hola {profile?.fullName?.split(' ')[0] ?? 'Doctora/o'}
+                </IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonText>
+                  <h2 style={{ margin: '12px 0 4px', fontWeight: 500 }}>
+                    {appointments.length > 0
+                      ? `Tienes ${appointments.length} citas agendadas hoy`
+                      : 'Tu agenda está despejada por ahora'}
+                  </h2>
+                  <p style={{ margin: 0 }}>Organiza tu jornada y revisa pacientes en seguimiento.</p>
+                </IonText>
+              </IonCardContent>
+            </IonCard>
+          </IonCol>
+        </IonRow>
+        <IonRow>
+          {summaryMetrics.map((metric) => (
+            <IonCol size="6" key={metric.label}>
+              <IonCard onClick={metric.action} button>
+                <IonCardContent>
+                  <IonText color="medium">{metric.label}</IonText>
+                  <IonCardTitle style={{ marginTop: 6 }}>{metric.value}</IonCardTitle>
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+          ))}
+        </IonRow>
         <IonRow>
           <IonCol size="12">
             <IonCard>
@@ -53,9 +113,16 @@ export function DashboardPage() {
                 {!todayAppointmentsQuery.isLoading && appointments.length === 0 && (
                   <IonText color="medium">No hay citas para hoy.</IonText>
                 )}
-                <IonList>
+                <IonList lines="none" className="flush-list">
                   {appointments.map((appointment) => (
-                    <IonItem key={appointment.id}>
+                    <IonItem
+                      key={appointment.id}
+                      className="subtle-card"
+                      button={Boolean(appointment.patientId)}
+                      onClick={() =>
+                        appointment.patientId && navigate(`/patients/${appointment.patientId}`)
+                      }
+                    >
                       <IonLabel>
                         <h2>{appointment.patient?.fullName ?? 'Paciente'}</h2>
                         <p>{formatDateTime(appointment.startsAt)}</p>
@@ -80,10 +147,11 @@ export function DashboardPage() {
                 {!pendingTreatmentsQuery.isLoading && pendingTreatments.length === 0 && (
                   <IonText color="medium">Sin pendientes 🎉</IonText>
                 )}
-                <IonList>
+                <IonList lines="none" className="flush-list">
                   {pendingTreatments.map((treatment) => (
                     <IonItem
                       key={treatment.id}
+                      className="subtle-card"
                       button
                       onClick={() =>
                         treatment.patientId && navigate(`/patients/${treatment.patientId}?segment=treatments`)

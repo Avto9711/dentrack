@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
   IonList,
   IonItem,
   IonLabel,
@@ -30,39 +34,38 @@ export function BudgetsPage() {
 
   return (
     <PageLayout title="Presupuestos">
-      <IonSegment
-        value={segment}
-        onIonChange={(event) => setSegment((event.detail.value as 'valid' | 'expired') ?? 'valid')}
-      >
-        <IonSegmentButton value="valid">
-          Vigentes
-        </IonSegmentButton>
-        <IonSegmentButton value="expired">
-          Vencidos
-        </IonSegmentButton>
-      </IonSegment>
-      <IonText className="ion-padding" color="medium">
-        {subtitle}
-      </IonText>
-      {budgets.length === 0 && !budgetsQuery.isLoading && (
-        <IonText className="ion-padding" color="medium">
-          {segment === 'valid'
-            ? 'Genera nuevos presupuestos desde la ficha del paciente.'
-            : 'No hay presupuestos vencidos.'}
-        </IonText>
-      )}
-      <IonList inset>
-        {budgets.map((budget) => (
-          <IonItem key={budget.id} button onClick={() => setSelectedBudget(budget)}>
-            <IonLabel>
-              <h2>{budget.patient?.fullName ?? 'Paciente'}</h2>
-              <p>{budget.items?.length ?? 0} tratamientos</p>
-            </IonLabel>
-            <IonBadge color="medium">{budget.status}</IonBadge>
-            <IonNote slot="end">{formatCurrency(budget.totalAmount, budget.currencyCode)}</IonNote>
-          </IonItem>
-        ))}
-      </IonList>
+      <IonCard className="page-block">
+        <IonCardHeader>
+          <IonSegment
+            value={segment}
+            onIonChange={(event) => setSegment((event.detail.value as 'valid' | 'expired') ?? 'valid')}
+          >
+            <IonSegmentButton value="valid">Vigentes</IonSegmentButton>
+            <IonSegmentButton value="expired">Vencidos</IonSegmentButton>
+          </IonSegment>
+        </IonCardHeader>
+        <IonCardContent>
+          {budgets.length === 0 && !budgetsQuery.isLoading && (
+            <IonText color="medium">
+              {segment === 'valid'
+                ? 'Genera nuevos presupuestos desde la ficha del paciente.'
+                : 'No hay presupuestos vencidos.'}
+            </IonText>
+          )}
+          <IonList lines="none" className="flush-list">
+            {budgets.map((budget) => (
+              <IonItem key={budget.id} button onClick={() => setSelectedBudget(budget)} className="subtle-card">
+                <IonLabel>
+                  <h2>{budget.patient?.fullName ?? 'Paciente'}</h2>
+                  <p>{budget.items?.length ?? 0} tratamientos</p>
+                </IonLabel>
+                <IonBadge color="medium">{budget.status}</IonBadge>
+                <IonNote slot="end">{formatCurrency(budget.totalAmount, budget.currencyCode)}</IonNote>
+              </IonItem>
+            ))}
+          </IonList>
+        </IonCardContent>
+      </IonCard>
       <BudgetDetailModal
         budget={selectedBudget}
         isOpen={Boolean(selectedBudget)}

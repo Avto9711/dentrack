@@ -19,7 +19,18 @@ import {
 } from '@ionic/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { callOutline, chatboxEllipsesOutline, mailOutline, arrowBackOutline, addOutline } from 'ionicons/icons';
+import {
+  callOutline,
+  chatboxEllipsesOutline,
+  mailOutline,
+  arrowBackOutline,
+  addOutline,
+  calendarOutline,
+  medkitOutline,
+  cashOutline,
+  personOutline,
+  clipboardOutline,
+} from 'ionicons/icons';
 import { PageLayout } from '@/components/PageLayout';
 import { fetchPatientDetail } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
@@ -39,11 +50,11 @@ import { PatientEvaluationCard } from '@/features/evaluations/PatientEvaluationC
 import { EditPatientModal } from '@/features/patients/EditPatientModal';
 
 const segments = [
-  { value: 'visits', label: 'Visitas' },
-  { value: 'treatments', label: 'Tratamientos' },
-  { value: 'budgets', label: 'Presupuestos' },
-  { value: 'contact', label: 'Contacto' },
-  { value: 'evaluations', label: 'Evaluaciones' },
+  { value: 'visits', label: 'Visitas', icon: calendarOutline },
+  { value: 'treatments', label: 'Tratamientos', icon: medkitOutline },
+  { value: 'budgets', label: 'Presupuestos', icon: cashOutline },
+  { value: 'contact', label: 'Contacto', icon: personOutline },
+  { value: 'evaluations', label: 'Evaluaciones', icon: clipboardOutline },
 ] as const;
 
 export function PatientDetailPage() {
@@ -110,7 +121,7 @@ export function PatientDetailPage() {
 
   return (
     <PageLayout
-      title={patient.fullName}
+      title="Datos del paciente"
       toolbarStartSlot={
         <IonButton fill="clear" onClick={() => navigate(-1)}>
           <IonIcon icon={arrowBackOutline} />
@@ -122,32 +133,54 @@ export function PatientDetailPage() {
         </IonButton>
       }
     >
-      <IonCard>
-        <IonCardHeader>
-          <IonCardTitle>Datos del paciente</IonCardTitle>
-          <IonButton size="small" fill="clear" onClick={() => setEditPatientOpen(true)}>
-            Editar
-          </IonButton>
+      <IonCard className="page-block">
+        <IonCardHeader className="patient-card-header">
+          <div className="patient-card-header__title">
+            <div className="patient-card-header__title-row">
+              <IonCardTitle>{patient.fullName}</IonCardTitle>
+              <IonButton
+                size="small"
+                fill="clear"
+                className="patient-card-header__edit"
+                onClick={() => setEditPatientOpen(true)}
+              >
+                Editar
+              </IonButton>
+            </div>
+            <div className="patient-card-header__contacts">
+              {patient.phone && (
+                <IonButton
+                  className="contact-circle-button"
+                  size="small"
+                  fill="solid"
+                  onClick={() => openExternalUrl(`tel:${patient.phone}`)}
+                >
+                  <IonIcon icon={callOutline} slot="icon-only" />
+                </IonButton>
+              )}
+              {patient.email && (
+                <IonButton
+                  className="contact-circle-button"
+                  size="small"
+                  fill="solid"
+                  onClick={() => openExternalUrl(`mailto:${patient.email}`)}
+                >
+                  <IonIcon icon={mailOutline} slot="icon-only" />
+                </IonButton>
+              )}
+              <IonButton
+                className="contact-circle-button"
+                size="small"
+                fill="solid"
+                onClick={() => setShowWhatsApp(true)}
+              >
+                <IonIcon icon={chatboxEllipsesOutline} slot="icon-only" />
+              </IonButton>
+            </div>
+          </div>
         </IonCardHeader>
         <IonCardContent>
           <IonGrid>
-            <IonRow>
-              <IonCol size="12">
-                {patient.phone && (
-                  <IonButton fill="outline" size="small" onClick={() => openExternalUrl(`tel:${patient.phone}`)}>
-                    <IonIcon icon={callOutline} slot="start" /> Llamar
-                  </IonButton>
-                )}
-                {patient.email && (
-                  <IonButton fill="outline" size="small" onClick={() => openExternalUrl(`mailto:${patient.email}`)}>
-                    <IonIcon icon={mailOutline} slot="start" /> Email
-                  </IonButton>
-                )}
-                <IonButton fill="outline" size="small" onClick={() => setShowWhatsApp(true)}>
-                  <IonIcon icon={chatboxEllipsesOutline} slot="start" /> WhatsApp
-                </IonButton>
-              </IonCol>
-            </IonRow>
             <IonRow>
               <IonCol size="12" sizeMd="6">
                 <IonText color="medium">
@@ -176,123 +209,150 @@ export function PatientDetailPage() {
         </IonCardContent>
       </IonCard>
 
-      <IonSegment
-        value={segment}
-        onIonChange={(event) =>
-          setSegment((event.detail.value as (typeof segments)[number]['value']) ?? 'visits')
-        }
-      >
-        {segments.map((item) => (
-          <IonSegmentButton key={item.value} value={item.value}>
-            <IonLabel>{item.label}</IonLabel>
-          </IonSegmentButton>
-        ))}
-      </IonSegment>
+      <div className="page-block">
+        <IonSegment
+          className="pill-segment"
+          value={segment}
+          scrollable
+          onIonChange={(event) =>
+            setSegment((event.detail.value as (typeof segments)[number]['value']) ?? 'visits')
+          }
+        >
+          {segments.map((item) => (
+            <IonSegmentButton
+              key={item.value}
+              value={item.value}
+              style={{ minWidth: 56, padding: '6px 0' }}
+            >
+              <IonIcon icon={item.icon} aria-label={item.label} />
+            </IonSegmentButton>
+          ))}
+        </IonSegment>
+      </div>
 
       {segment === 'visits' && (
-        <IonList inset>
-          {appointments.map((visit) => (
-            <IonItem key={visit.id}>
-              <IonLabel>
-                <h2>{formatDateTime(visit.startsAt)}</h2>
-                <p>{visit.notes}</p>
-              </IonLabel>
-              <IonBadge color="tertiary">{visit.visitType}</IonBadge>
-            </IonItem>
-          ))}
-          {appointments.length === 0 && (
-            <IonText className="ion-padding" color="medium">
-              Sin visitas registradas.
-            </IonText>
-          )}
-        </IonList>
+        <IonCard className="page-block">
+          <IonCardHeader>
+            <IonCardTitle>Visitas</IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            <IonList lines="none" className="flush-list">
+              {appointments.map((visit) => (
+                <IonItem key={visit.id} className="subtle-card">
+                  <IonLabel>
+                    <h2>{formatDateTime(visit.startsAt)}</h2>
+                    <p style={{ margin: 0 }}>{visit.notes || 'Sin notas'}</p>
+                  </IonLabel>
+                  <IonBadge color="tertiary">{visit.visitType}</IonBadge>
+                </IonItem>
+              ))}
+            </IonList>
+            {appointments.length === 0 && <IonText color="medium">Sin visitas registradas.</IonText>}
+          </IonCardContent>
+        </IonCard>
       )}
 
       {segment === 'treatments' && (
         <>
-          <IonButton expand="block" onClick={() => setAddTreatmentOpen(true)}>
+          <IonButton className="page-block" expand="block" onClick={() => setAddTreatmentOpen(true)}>
             Agregar tratamiento
           </IonButton>
-          <IonText className="ion-padding" color="medium">
-            Pendientes
-          </IonText>
-          <IonList inset>
-            {pendingTreatments.map((treatment) => (
-              <IonItem key={treatment.id}>
-                <IonLabel>
-                  <h2>{treatment.treatment?.name}</h2>
-                  <p>{treatment.notes}</p>
-                </IonLabel>
-                <IonButton size="small" fill="clear" onClick={() => setTreatmentToEdit(treatment)}>
-                  Editar
-                </IonButton>
-                <IonButton size="small" fill="clear" onClick={() => setCompleteTreatment(treatment)}>
-                  Marcar done
-                </IonButton>
-                <IonBadge color="warning">{treatment.status}</IonBadge>
-              </IonItem>
-            ))}
-            {pendingTreatments.length === 0 && (
-              <IonText className="ion-padding" color="success">
-                Sin pendientes 🎉
-              </IonText>
-            )}
-          </IonList>
-          <IonText className="ion-padding" color="medium">
-            Completados
-          </IonText>
-          <IonList inset>
-            {completedTreatments.map((treatment) => (
-              <IonItem key={treatment.id}>
-                <IonLabel>
-                  <h2>{treatment.treatment?.name}</h2>
-                  <p>
-                    {treatment.completedInVisit
-                      ? `Visita: ${formatDateTime(
-                          visitsById.get(treatment.completedInVisit)?.startsAt ?? ''
-                        )}`
-                      : 'Sin visita registrada'}
-                  </p>
-                </IonLabel>
-                <IonButton size="small" fill="clear" onClick={() => setTreatmentToEdit(treatment)}>
-                  Editar
-                </IonButton>
-                <IonBadge color="success">
-                  {formatCurrency(treatment.finalPrice ?? treatment.proposedPrice ?? 0)}
-                </IonBadge>
-              </IonItem>
-            ))}
-          </IonList>
+          <IonCard className="page-block">
+            <IonCardHeader>
+              <IonCardTitle>Pendientes</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonList lines="none" className="flush-list">
+                {pendingTreatments.map((treatment) => (
+                  <IonItem key={treatment.id} className="subtle-card">
+                    <IonLabel>
+                      <h2>{treatment.treatment?.name}</h2>
+                      <p style={{ margin: 0 }}>{treatment.notes || 'Sin notas'}</p>
+                    </IonLabel>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <IonButton size="small" fill="clear" onClick={() => setTreatmentToEdit(treatment)}>
+                        Editar
+                      </IonButton>
+                      <IonButton size="small" fill="clear" onClick={() => setCompleteTreatment(treatment)}>
+                        Marcar done
+                      </IonButton>
+                    </div>
+                    <IonBadge color="warning">{treatment.status}</IonBadge>
+                  </IonItem>
+                ))}
+              </IonList>
+              {pendingTreatments.length === 0 && <IonText color="success">Sin pendientes 🎉</IonText>}
+            </IonCardContent>
+          </IonCard>
+          <IonCard className="page-block">
+            <IonCardHeader>
+              <IonCardTitle>Completados</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonList lines="none" className="flush-list">
+                {completedTreatments.map((treatment) => (
+                  <IonItem key={treatment.id} className="subtle-card">
+                    <IonLabel>
+                      <h2>{treatment.treatment?.name}</h2>
+                      <p>
+                        {treatment.completedInVisit
+                          ? `Visita: ${formatDateTime(
+                              visitsById.get(treatment.completedInVisit)?.startsAt ?? ''
+                            )}`
+                          : 'Sin visita registrada'}
+                      </p>
+                    </IonLabel>
+                    <IonButton size="small" fill="clear" onClick={() => setTreatmentToEdit(treatment)}>
+                      Editar
+                    </IonButton>
+                    <IonBadge color="success">
+                      {formatCurrency(treatment.finalPrice ?? treatment.proposedPrice ?? 0)}
+                    </IonBadge>
+                  </IonItem>
+                ))}
+              </IonList>
+              {completedTreatments.length === 0 && <IonText color="medium">Sin tratamientos completados.</IonText>}
+            </IonCardContent>
+          </IonCard>
         </>
       )}
 
       {segment === 'budgets' && (
         <>
-          <IonButton expand="block" onClick={() => setBudgetModalOpen(true)} disabled={pendingTreatments.length === 0}>
+          <IonButton
+            className="page-block"
+            expand="block"
+            onClick={() => setBudgetModalOpen(true)}
+            disabled={pendingTreatments.length === 0}
+          >
             Crear desde tratamientos
           </IonButton>
-          <IonList inset>
-            {budgets.map((budget) => (
-              <IonItem key={budget.id} button onClick={() => setSelectedBudget(budget)}>
-                <IonLabel>
-                  <h2>Presupuesto</h2>
-                  <p>{budget.notes}</p>
-                </IonLabel>
-                <IonBadge color="medium">{budget.status}</IonBadge>
-                <IonText slot="end">{formatCurrency(budget.totalAmount, budget.currencyCode)}</IonText>
-              </IonItem>
-            ))}
-            {budgets.length === 0 && (
-              <IonText className="ion-padding" color="medium">
-                Aún no tienes presupuestos para este paciente.
-              </IonText>
-            )}
-          </IonList>
+          <IonCard className="page-block">
+            <IonCardHeader>
+              <IonCardTitle>Presupuestos</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonList lines="none" className="flush-list">
+                {budgets.map((budget) => (
+                  <IonItem key={budget.id} className="subtle-card" button onClick={() => setSelectedBudget(budget)}>
+                    <IonLabel>
+                      <h2>{budget.notes || 'Presupuesto'}</h2>
+                      <p style={{ margin: 0 }}>Total: {formatCurrency(budget.totalAmount, budget.currencyCode)}</p>
+                    </IonLabel>
+                    <IonBadge color="medium">{budget.status}</IonBadge>
+                  </IonItem>
+                ))}
+              </IonList>
+              {budgets.length === 0 && (
+                <IonText color="medium">Aún no tienes presupuestos para este paciente.</IonText>
+              )}
+            </IonCardContent>
+          </IonCard>
         </>
       )}
 
       {segment === 'contact' && (
-        <IonCard>
+        <IonCard className="page-block">
           <IonCardHeader>
             <IonCardTitle>Contacto rápido</IonCardTitle>
           </IonCardHeader>
@@ -316,11 +376,11 @@ export function PatientDetailPage() {
 
       {segment === 'evaluations' && (
         <>
-          <IonButton expand="block" onClick={() => openEvaluationModal(null)}>
+          <IonButton className="page-block" expand="block" onClick={() => openEvaluationModal(null)}>
             Registrar evaluación
           </IonButton>
           {evaluations.length === 0 && (
-            <IonText className="ion-padding" color="medium">
+            <IonText className="page-block" color="medium">
               Aún no hay evaluaciones registradas para este paciente.
             </IonText>
           )}

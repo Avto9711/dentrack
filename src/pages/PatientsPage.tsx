@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import {
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
   IonList,
   IonSearchbar,
   IonSkeletonText,
@@ -9,6 +13,7 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonText,
+  IonButton,
   type RefresherEventDetail,
 } from '@ionic/react';
 import { addOutline } from 'ionicons/icons';
@@ -45,29 +50,39 @@ export function PatientsPage() {
         placeholder="Buscar por nombre o teléfono"
         value={search}
         onIonInput={(event) => setSearch(event.detail.value ?? '')}
+        className="subtle-card page-block"
       />
-      {patientsQuery.isLoading && (
-        <IonList>
-          {Array.from({ length: 4 }).map((_, index) => (
-            <IonSkeletonText key={index} animated style={{ width: '100%', height: 64 }} />
-          ))}
-        </IonList>
-      )}
-      {!patientsQuery.isLoading && patients.length === 0 && (
-        <IonText className="ion-padding" color="medium">
-          No hay pacientes. Agrega uno nuevo con el botón +.
-        </IonText>
-      )}
-      <IonList inset>
-        {patients.map((patient) => (
-          <PatientListItem
-            key={patient.id}
-            patient={patient}
-            onSelect={(id) => navigate(`/patients/${id}`)}
-            onCall={(phone) => openExternalUrl(`tel:${phone}`)}
-          />
-        ))}
-      </IonList>
+      <IonCard className="page-block">
+        <IonCardContent>
+          {patientsQuery.isLoading && (
+            <IonList className="flush-list">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <IonSkeletonText key={index} animated style={{ width: '100%', height: 64 }} />
+              ))}
+            </IonList>
+          )}
+          {!patientsQuery.isLoading && patients.length === 0 && (
+            <IonText color="medium">
+              <p>No hay pacientes registrados aún.</p>
+            </IonText>
+          )}
+          <IonList lines="none" className="flush-list">
+            {patients.map((patient) => (
+              <PatientListItem
+                key={patient.id}
+                patient={patient}
+                onSelect={(id) => navigate(`/patients/${id}`)}
+                onCall={(phone) => openExternalUrl(`tel:${phone}`)}
+              />
+            ))}
+          </IonList>
+          {!patientsQuery.isLoading && patients.length === 0 && (
+            <IonButton expand="block" onClick={() => setModalOpen(true)}>
+              Registrar paciente
+            </IonButton>
+          )}
+        </IonCardContent>
+      </IonCard>
       <IonFab slot="fixed" vertical="bottom" horizontal="end">
         <IonFabButton onClick={() => setModalOpen(true)}>
           <IonIcon icon={addOutline} />

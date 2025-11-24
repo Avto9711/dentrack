@@ -401,8 +401,11 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
             </IonText>
           )}
           {dentogramEntries.map((entry, index) => (
-            <div key={`dentogram-entry-${index}`}>
-              <IonItem>
+            <div key={`dentogram-entry-${index}`} className="subtle-card" style={{ marginTop: 12 }}>
+              <IonLabel>
+                <h3 style={{ marginTop: 0 }}>Pieza #{index + 1}</h3>
+              </IonLabel>
+              <IonItem lines="none">
                 <IonLabel position="stacked">Pieza</IonLabel>
                 <IonSelect
                   placeholder="Seleccionar"
@@ -425,7 +428,7 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
                   ))}
                 </IonSelect>
               </IonItem>
-              <IonItem>
+              <IonItem lines="none">
                 <IonLabel position="stacked">Cara</IonLabel>
                 <IonSelect
                   placeholder="Seleccionar"
@@ -448,7 +451,7 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
                   ))}
                 </IonSelect>
               </IonItem>
-              <IonItem>
+              <IonItem lines="none">
                 <IonLabel position="stacked">Hallazgo</IonLabel>
                 <IonSelect
                   placeholder="Seleccionar"
@@ -470,17 +473,18 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
                     </IonSelectOption>
                   ))}
                 </IonSelect>
-                <IonButton
-                  slot="end"
-                  fill="clear"
-                  color="danger"
-                  onClick={() =>
-                    setDentogramEntries((prev) => prev.filter((_, entryIndex) => entryIndex !== index))
-                  }
-                >
-                  Eliminar
-                </IonButton>
               </IonItem>
+              <IonButton
+                expand="block"
+                color="danger"
+                fill="outline"
+                onClick={() =>
+                  setDentogramEntries((prev) => prev.filter((_, entryIndex) => entryIndex !== index))
+                }
+                style={{ marginTop: 8 }}
+              >
+                Eliminar pieza
+              </IonButton>
             </div>
           ))}
           <IonItem>

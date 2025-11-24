@@ -1,4 +1,5 @@
 import {
+  IonBadge,
   IonButton,
   IonCard,
   IonCardContent,
@@ -6,13 +7,11 @@ import {
   IonCardSubtitle,
   IonCardTitle,
   IonChip,
-  IonIcon,
   IonItem,
   IonLabel,
   IonList,
   IonText,
 } from '@ionic/react';
-import { createOutline } from 'ionicons/icons';
 import type { PatientEvaluation } from '@/types/domain';
 import { formatDate } from '@/utils/date';
 
@@ -40,12 +39,23 @@ export function PatientEvaluationCard({ evaluation, onEdit }: PatientEvaluationC
 
   return (
     <IonCard>
-      <IonCardHeader>
-        <IonCardTitle>{formatDate(evaluation.evaluationDate)}</IonCardTitle>
-        <IonCardSubtitle>{evaluation.diagnosis || 'Sin diagnóstico registrado'}</IonCardSubtitle>
-        <IonButton fill="clear" size="small" onClick={() => onEdit(evaluation)}>
-          <IonIcon slot="start" icon={createOutline} /> Editar
-        </IonButton>
+      <IonCardHeader className="patient-card-header">
+        <IonCardSubtitle style={{ textAlign: 'center', width: '100%' }}>
+          {evaluation.diagnosis || 'Sin diagnóstico registrado'}
+        </IonCardSubtitle>
+        <div className="patient-card-header__title">
+          <div className="patient-card-header__title-row">
+            <IonCardTitle>{formatDate(evaluation.evaluationDate)}</IonCardTitle>
+            <IonButton
+              size="small"
+              fill="clear"
+              className="patient-card-header__edit"
+              onClick={() => onEdit(evaluation)}
+            >
+              Editar
+            </IonButton>
+          </div>
+        </div>
       </IonCardHeader>
       <IonCardContent>
         <IonList lines="none">
@@ -105,19 +115,26 @@ export function PatientEvaluationCard({ evaluation, onEdit }: PatientEvaluationC
           <IonItem>
             <IonLabel>
               <h3>Dentigrama</h3>
-              {evaluation.dentogramEntries && evaluation.dentogramEntries.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {evaluation.dentogramEntries.map((entry) => (
-                    <IonChip key={entry.id}>
-                      {entry.toothNumber} · {entry.surface} · {entry.finding}
-                    </IonChip>
-                  ))}
-                </div>
-              ) : (
-                <IonText color="medium">Sin piezas registradas</IonText>
-              )}
             </IonLabel>
           </IonItem>
+          {evaluation.dentogramEntries && evaluation.dentogramEntries.length > 0 ? (
+            <IonList lines="none" className="subtle-card" style={{ margin: '0 16px 16px' }}>
+              {evaluation.dentogramEntries.map((entry, index) => (
+                <IonItem key={entry.id} lines="none" style={{ '--background': 'transparent' }}>
+                  <IonLabel>
+                    <h4 style={{ margin: '0 0 4px' }}>Pieza {entry.toothNumber}</h4>
+                    <p style={{ margin: 0 }}>Cara: {entry.surface}</p>
+                    <p style={{ margin: 0 }}>Hallazgo: {entry.finding}</p>
+                  </IonLabel>
+                  <IonBadge color="tertiary">#{index + 1}</IonBadge>
+                </IonItem>
+              ))}
+            </IonList>
+          ) : (
+            <IonText color="medium" className="ion-padding">
+              Sin piezas registradas
+            </IonText>
+          )}
           <IonItem>
             <IonLabel>
               <h3>Plan de tratamiento</h3>
