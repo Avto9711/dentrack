@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "hash-password": "node scripts/hash-password.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^7.1.0",
@@ -19,6 +20,7 @@
     "@ionic/react": "^8.7.10",
     "@supabase/supabase-js": "^2.84.0",
     "@tanstack/react-query": "^5.90.10",
+    "bcryptjs": "^3.0.3",
     "ionicons": "^8.0.13",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

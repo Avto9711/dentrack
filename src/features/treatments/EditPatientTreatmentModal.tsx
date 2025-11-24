@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   IonModal,
   IonHeader,
@@ -17,30 +17,38 @@ import {
 } from '@ionic/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  createPatientTreatment,
   fetchTreatmentCatalog,
-  type CreatePatientTreatmentInput,
+  updatePatientTreatment,
+  type UpdatePatientTreatmentInput,
 } from '@/lib/api';
 import { queryKeys } from '@/lib/queryKeys';
 import { useIonToast } from '@ionic/react';
-import type { Appointment } from '@/types/domain';
-import { useAuth } from '@/context/AuthContext';
+import type { Appointment, TreatmentStatus, PatientTreatment } from '@/types/domain';
 
-interface AddTreatmentModalProps {
+interface EditPatientTreatmentModalProps {
   patientId: string;
+  treatment: PatientTreatment | null;
   isOpen: boolean;
   onDismiss: () => void;
   visits: Appointment[];
 }
 
-export function AddTreatmentModal({ patientId, isOpen, onDismiss, visits }: AddTreatmentModalProps) {
+const statusOptions: TreatmentStatus[] = ['planned', 'accepted', 'scheduled', 'completed', 'declined'];
+
+export function EditPatientTreatmentModal({
+  patientId,
+  treatment,
+  isOpen,
+  onDismiss,
+  visits,
+}: EditPatientTreatmentModalProps) {
   const [selectedTreatmentId, setSelectedTreatmentId] = useState<string>('');
   const [price, setPrice] = useState<number>(0);
   const [notes, setNotes] = useState('');
+  const [status, setStatus] = useState<TreatmentStatus>('planned');
   const [proposedInVisit, setProposedInVisit] = useState<string>('');
   const [presentToast] = useIonToast();
   const queryClient = useQueryClient();
-  const { profile } = useAuth();
 
   const catalogQuery = useQuery({
     queryKey: queryKeys.treatmentCatalog,
@@ -48,18 +56,48 @@ export function AddTreatmentModal({ patientId, isOpen, onDismiss, visits }: AddT
     enabled: isOpen,
   });
 
-  useEffect(() => {
-    if (!selectedTreatmentId) return;
-    const selected = catalogQuery.data?.find((item) => item.id === selectedTreatmentId);
-    if (selected) {
-      setPrice(selected.defaultPrice);
+  const treatmentDefaults = useMemo(() => {
+    if (!treatment) {
+      return {
+        treatmentId: '',
+        price: 0,
+        notes: '',
+        status: 'planned' as TreatmentStatus,
+        visit: '',
+      };
     }
-  }, [selectedTreatmentId, catalogQuery.data]);
+    return {
+      treatmentId: treatment.treatmentId,
+      price: treatment.proposedPrice ?? treatment.finalPrice ?? 0,
+      notes: treatment.notes ?? '',
+      status: treatment.status,
+      visit: treatment.proposedInVisit ?? '',
+    };
+  }, [treatment]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedTreatmentId(treatmentDefaults.treatmentId);
+    setPrice(treatmentDefaults.price);
+    setNotes(treatmentDefaults.notes);
+    setStatus(treatmentDefaults.status);
+    setProposedInVisit(treatmentDefaults.visit);
+  }, [isOpen, treatmentDefaults]);
+
+  useEffect(() => {
+    if (!selectedTreatmentId || !catalogQuery.data) return;
+    if (!price) {
+      const selected = catalogQuery.data.find((item) => item.id === selectedTreatmentId);
+      if (selected) {
+        setPrice(selected.defaultPrice);
+      }
+    }
+  }, [catalogQuery.data, price, selectedTreatmentId]);
 
   const mutation = useMutation({
-    mutationFn: (input: CreatePatientTreatmentInput) => createPatientTreatment(input),
+    mutationFn: (input: UpdatePatientTreatmentInput) => updatePatientTreatment(input),
     onSuccess: async () => {
-      presentToast({ message: 'Tratamiento agregado', duration: 2000, color: 'success' });
+      presentToast({ message: 'Tratamiento actualizado', duration: 2000, color: 'success' });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.patientDetail(patientId) }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.pendingTreatments }),
@@ -70,41 +108,29 @@ export function AddTreatmentModal({ patientId, isOpen, onDismiss, visits }: AddT
   });
 
   function handleSave() {
+    if (!treatment) return;
     if (!selectedTreatmentId) {
       presentToast({ message: 'Selecciona un tratamiento', duration: 2000, color: 'warning' });
       return;
     }
     mutation.mutate({
-      patientId,
+      id: treatment.id,
       treatmentId: selectedTreatmentId,
+      status,
       proposedPrice: price,
       notes,
       proposedInVisit: proposedInVisit || undefined,
-      clinicId: profile?.clinicId ?? null,
     });
   }
 
-  function resetForm() {
-    setSelectedTreatmentId('');
-    setPrice(0);
-    setNotes('');
-    setProposedInVisit('');
-  }
-
   return (
-    <IonModal
-      isOpen={isOpen}
-      onDidDismiss={onDismiss}
-      onWillPresent={resetForm}
-      initialBreakpoint={0.9}
-      breakpoints={[0, 0.9]}
-    >
+    <IonModal isOpen={isOpen} onDidDismiss={onDismiss} initialBreakpoint={0.9} breakpoints={[0, 0.9]}>
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
             <IonButton onClick={onDismiss}>Cancelar</IonButton>
           </IonButtons>
-          <IonTitle>Agregar tratamiento</IonTitle>
+          <IonTitle>Editar tratamiento</IonTitle>
           <IonButtons slot="end">
             <IonButton strong onClick={handleSave} disabled={mutation.isPending}>
               Guardar
@@ -116,11 +142,7 @@ export function AddTreatmentModal({ patientId, isOpen, onDismiss, visits }: AddT
         <IonList inset>
           <IonItem>
             <IonLabel position="stacked">Tratamiento</IonLabel>
-            <IonSelect
-              placeholder="Seleccionar"
-              value={selectedTreatmentId}
-              onIonChange={(e) => setSelectedTreatmentId(e.detail.value)}
-            >
+            <IonSelect value={selectedTreatmentId} placeholder="Seleccionar" onIonChange={(e) => setSelectedTreatmentId(e.detail.value)}>
               {catalogQuery.data?.map((item) => (
                 <IonSelectOption key={item.id} value={item.id}>
                   {item.name}
@@ -129,20 +151,22 @@ export function AddTreatmentModal({ patientId, isOpen, onDismiss, visits }: AddT
             </IonSelect>
           </IonItem>
           <IonItem>
-            <IonLabel position="stacked">Precio propuesto</IonLabel>
-            <IonInput
-              type="number"
-              value={price}
-              onIonInput={(e) => setPrice(Number(e.detail.value) || 0)}
-            />
+            <IonLabel position="stacked">Precio</IonLabel>
+            <IonInput type="number" value={price} onIonInput={(e) => setPrice(Number(e.detail.value) || 0)} />
+          </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Estado</IonLabel>
+            <IonSelect value={status} onIonChange={(e) => setStatus(e.detail.value)}>
+              {statusOptions.map((option) => (
+                <IonSelectOption key={option} value={option}>
+                  {option}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Vincular a visita</IonLabel>
-            <IonSelect
-              placeholder="Sin visita"
-              value={proposedInVisit}
-              onIonChange={(e) => setProposedInVisit(e.detail.value)}
-            >
+            <IonSelect value={proposedInVisit} placeholder="Sin visita" onIonChange={(e) => setProposedInVisit(e.detail.value)}>
               <IonSelectOption value="">Sin visita</IonSelectOption>
               {visits.map((visit) => (
                 <IonSelectOption key={visit.id} value={visit.id}>
@@ -152,7 +176,7 @@ export function AddTreatmentModal({ patientId, isOpen, onDismiss, visits }: AddT
             </IonSelect>
           </IonItem>
           <IonItem>
-            <IonLabel position="stacked">Notas / Área</IonLabel>
+            <IonLabel position="stacked">Notas</IonLabel>
             <IonTextarea autoGrow value={notes} onIonInput={(e) => setNotes(e.detail.value ?? '')} />
           </IonItem>
         </IonList>

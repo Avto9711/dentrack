@@ -701,6 +701,11 @@ baseline-browser-mapping@^2.8.25:
   resolved "https://registry.npmjs.org/baseline-browser-mapping/-/baseline-browser-mapping-2.8.30.tgz"
   integrity sha512-aTUKW4ptQhS64+v2d6IkPzymEzzhw+G0bA1g3uBRV3+ntkH+svttKseW5IOR4Ed6NUVKqnY7qT3dKvzQ7io4AA==
 
+bcryptjs@^3.0.3:
+  version "3.0.3"
+  resolved "https://registry.npmjs.org/bcryptjs/-/bcryptjs-3.0.3.tgz"
+  integrity sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==
+
 bin-links@^6.0.0:
   version "6.0.0"
   resolved "https://registry.npmjs.org/bin-links/-/bin-links-6.0.0.tgz"
@@ -1044,7 +1049,7 @@ source-map-js@^1.2.1:
 
 supabase@^2.58.5:
   version "2.58.5"
-  resolved "https://registry.yarnpkg.com/supabase/-/supabase-2.58.5.tgz#2e8c8a78b8586ca53b9f16d179ec424e84abc71a"
+  resolved "https://registry.npmjs.org/supabase/-/supabase-2.58.5.tgz"
   integrity sha512-mYZSkUIePTdmwlHd26Pff8wpmjfre8gcuWzrc5QqhZgZvCXugVzAQQhcjaQisw5kusbPQWNIjUwcHYEKmejhPw==
   dependencies:
     bin-links "^6.0.0"

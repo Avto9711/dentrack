@@ -26,6 +26,12 @@ export interface CreatePatientInput {
   notes?: string;
   birthDate?: string;
   gender?: string;
+  clinicId?: string | null;
+  createdBy?: string;
+}
+
+export interface UpdatePatientInput extends CreatePatientInput {
+  patientId: string;
 }
 
 export interface CreateAppointmentInput {
@@ -34,10 +40,22 @@ export interface CreateAppointmentInput {
   endsAt: string;
   visitType: VisitType;
   notes?: string;
+  dentistId?: string;
+  clinicId?: string | null;
 }
 
 export interface CreatePatientTreatmentInput {
   patientId: string;
+  treatmentId: string;
+  status?: TreatmentStatus;
+  proposedPrice?: number;
+  notes?: string;
+  proposedInVisit?: string;
+  clinicId?: string | null;
+}
+
+export interface UpdatePatientTreatmentInput {
+  id: string;
   treatmentId: string;
   status?: TreatmentStatus;
   proposedPrice?: number;
@@ -58,6 +76,8 @@ export interface CreateBudgetInput {
   status?: BudgetStatus;
   validUntil?: string;
   notes?: string;
+  createdBy?: string;
+  clinicId?: string | null;
 }
 
 export interface PatientDetailPayload {
@@ -99,22 +119,35 @@ export interface PatientEvaluationInput {
 
 export interface CreatePatientEvaluationInput extends PatientEvaluationInput {
   patientId: string;
+  dentistId?: string;
 }
 
 export interface UpdatePatientEvaluationInput extends PatientEvaluationInput {
   evaluationId: string;
+  dentistId?: string;
+}
+
+export interface LogWhatsAppMessageInput {
+  patientId: string;
+  phone: string;
+  message: string;
+  createdBy: string;
+  clinicId?: string | null;
+  appointmentId?: string;
 }
 
 const PATIENT_COLUMNS = `
   id,
   first_name,
   last_name,
+  clinic_id,
   phone,
   email,
   address,
   notes,
   birth_date,
   gender,
+  created_by,
   created_at,
   updated_at
 `;
@@ -153,6 +186,7 @@ const BUDGET_SELECT = `
   currency_code,
   valid_until,
   notes,
+  created_by,
   created_at,
   updated_at,
   patients:patients(${PATIENT_COLUMNS}),
@@ -217,12 +251,14 @@ function mapPatient(row: any): Patient {
     firstName: row.first_name,
     lastName: row.last_name,
     fullName: `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim(),
+    clinicId: row.clinic_id,
     phone: row.phone,
     email: row.email,
     address: row.address,
     notes: row.notes,
     birthDate: row.birth_date,
     gender: row.gender,
+    createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -327,6 +363,7 @@ function mapBudget(row: any): Budget {
     currencyCode: row.currency_code,
     validUntil: row.valid_until,
     notes: row.notes,
+    createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     patient: row.patients ? mapPatient(row.patients) : undefined,
@@ -380,7 +417,29 @@ export async function listPatients(search?: string): Promise<PatientSummary[]> {
 }
 
 export async function createPatient(input: CreatePatientInput): Promise<Patient> {
-  const payload = {
+  const payload = buildPatientPayload(input);
+
+  const { data, error } = await supabase.from('patients').insert(payload).select('*').single();
+  if (error) throw error;
+  return mapPatient(data);
+}
+
+export async function updatePatient(input: UpdatePatientInput): Promise<Patient> {
+  const payload = buildPatientPayload(input);
+
+  const { data, error } = await supabase
+    .from('patients')
+    .update(payload)
+    .eq('id', input.patientId)
+    .select(PATIENT_COLUMNS)
+    .single();
+
+  if (error) throw error;
+  return mapPatient(data);
+}
+
+function buildPatientPayload(input: CreatePatientInput) {
+  const payload: Record<string, unknown> = {
     first_name: input.firstName.trim(),
     last_name: input.lastName.trim(),
     phone: input.phone?.trim() || null,
@@ -391,9 +450,15 @@ export async function createPatient(input: CreatePatientInput): Promise<Patient>
     gender: input.gender || null,
   };
 
-  const { data, error } = await supabase.from('patients').insert(payload).select('*').single();
-  if (error) throw error;
-  return mapPatient(data);
+  if (typeof input.clinicId !== 'undefined') {
+    payload.clinic_id = input.clinicId || null;
+  }
+
+  if (typeof input.createdBy !== 'undefined') {
+    payload.created_by = input.createdBy || null;
+  }
+
+  return payload;
 }
 
 export async function fetchPatientDetail(patientId: string): Promise<PatientDetailPayload> {
@@ -472,6 +537,7 @@ export async function createPatientEvaluation(
 ): Promise<PatientEvaluation> {
   const payload: Record<string, unknown> = {
     patient_id: input.patientId,
+    dentist_id: input.dentistId ?? null,
     ...buildEvaluationPayload(input),
   };
   if (input.evaluationDate) {
@@ -496,6 +562,9 @@ export async function updatePatientEvaluation(
   const updatePayload: Record<string, unknown> = { ...payload };
   if (rest.evaluationDate) {
     updatePayload.evaluation_date = rest.evaluationDate;
+  }
+  if (typeof rest.dentistId !== 'undefined') {
+    updatePayload.dentist_id = rest.dentistId ?? null;
   }
 
   const { data, error } = await supabase
@@ -541,7 +610,9 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
   const { data, error } = await supabase
     .from('appointments')
     .insert({
+      clinic_id: input.clinicId ?? null,
       patient_id: input.patientId,
+      dentist_id: input.dentistId ?? null,
       starts_at: input.startsAt,
       ends_at: input.endsAt,
       visit_type: input.visitType,
@@ -571,13 +642,36 @@ export async function createPatientTreatment(
   const { data, error } = await supabase
     .from('patient_treatments')
     .insert({
+      clinic_id: input.clinicId ?? null,
       patient_id: input.patientId,
       treatment_id: input.treatmentId,
       proposed_price: input.proposedPrice ?? null,
       status: input.status ?? 'planned',
-      proposed_in_visit: input.proposedInVisit ?? null,
+      proposed_in_visit_id: input.proposedInVisit ?? null,
       notes: input.notes ?? null,
     })
+    .select(PATIENT_TREATMENT_SELECT)
+    .single();
+
+  if (error) throw error;
+  return mapPatientTreatment(data);
+}
+
+export async function updatePatientTreatment(
+  input: UpdatePatientTreatmentInput
+): Promise<PatientTreatment> {
+  const payload = {
+    treatment_id: input.treatmentId,
+    status: input.status ?? 'planned',
+    proposed_price: input.proposedPrice ?? null,
+    notes: input.notes ?? null,
+    proposed_in_visit_id: input.proposedInVisit ?? null,
+  };
+
+  const { data, error } = await supabase
+    .from('patient_treatments')
+    .update(payload)
+    .eq('id', input.id)
     .select(PATIENT_TREATMENT_SELECT)
     .single();
 
@@ -592,7 +686,7 @@ export async function completePatientTreatment(
     .from('patient_treatments')
     .update({
       status: 'completed',
-      completed_in_visit: input.completedInVisit,
+      completed_in_visit_id: input.completedInVisit,
       final_price: input.finalPrice ?? null,
       notes: input.notes ?? null,
     })
@@ -626,11 +720,13 @@ export async function createBudgetFromTreatments(
   const { data, error } = await supabase
     .from('budgets')
     .insert({
+      clinic_id: input.clinicId ?? null,
       patient_id: input.patientId,
       status: input.status ?? 'draft',
       total_amount: total,
       valid_until: input.validUntil ?? null,
       notes: input.notes ?? null,
+      created_by: input.createdBy ?? null,
     })
     .select('id')
     .single();
@@ -726,4 +822,18 @@ export async function fetchTodayAppointments(): Promise<Appointment[]> {
 
   if (error) throw error;
   return (data ?? []).map(mapAppointment);
+}
+
+export async function logWhatsAppMessage(input: LogWhatsAppMessageInput): Promise<void> {
+  const payload = {
+    patient_id: input.patientId,
+    phone: input.phone,
+    message: input.message,
+    created_by: input.createdBy,
+    clinic_id: input.clinicId ?? null,
+    appointment_id: input.appointmentId ?? null,
+  };
+
+  const { error } = await supabase.from('whatsapp_logs').insert(payload);
+  if (error) throw error;
 }

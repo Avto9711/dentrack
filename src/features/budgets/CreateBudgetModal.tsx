@@ -21,6 +21,7 @@ import type { PatientTreatment } from '@/types/domain';
 import { formatCurrency } from '@/utils/money';
 import { queryKeys } from '@/lib/queryKeys';
 import { useIonToast } from '@ionic/react';
+import { useAuth } from '@/context/AuthContext';
 
 interface CreateBudgetModalProps {
   patientId: string;
@@ -35,6 +36,7 @@ export function CreateBudgetModal({ patientId, treatments, isOpen, onDismiss }: 
   const [notes, setNotes] = useState('');
   const [presentToast] = useIonToast();
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   const mutation = useMutation({
     mutationFn: (input: CreateBudgetInput) => createBudgetFromTreatments(input),
@@ -58,7 +60,14 @@ export function CreateBudgetModal({ patientId, treatments, isOpen, onDismiss }: 
       presentToast({ message: 'Selecciona al menos un tratamiento', duration: 2000, color: 'warning' });
       return;
     }
-    mutation.mutate({ patientId, treatmentIds: selected, validUntil: validUntil || undefined, notes });
+    mutation.mutate({
+      patientId,
+      treatmentIds: selected,
+      validUntil: validUntil || undefined,
+      notes,
+      createdBy: profile?.id,
+      clinicId: profile?.clinicId ?? null,
+    });
   }
 
   function resetForm() {

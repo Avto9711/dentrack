@@ -21,6 +21,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { useIonToast } from '@ionic/react';
 import type { VisitType } from '@/types/domain';
 import { addMinutes, combineDateAndTime } from '@/utils/date';
+import { useAuth } from '@/context/AuthContext';
 
 interface AddAppointmentModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export function AddAppointmentModal({ isOpen, onDismiss, defaultPatientId }: Add
   const [notes, setNotes] = useState('');
   const [presentToast] = useIonToast();
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   const patientsQuery = useQuery({
     queryKey: queryKeys.patients(''),
@@ -67,9 +69,21 @@ export function AddAppointmentModal({ isOpen, onDismiss, defaultPatientId }: Add
       presentToast({ message: 'Selecciona un paciente', duration: 2000, color: 'warning' });
       return;
     }
+    if (!profile?.id) {
+      presentToast({ message: 'Tu sesión no es válida. Inicia sesión nuevamente.', color: 'danger', duration: 2500 });
+      return;
+    }
     const startsAt = combineDateAndTime(date, time);
     const endsAt = addMinutes(startsAt, durationMinutes);
-    mutation.mutate({ patientId: selectedPatientId, startsAt, endsAt, visitType, notes });
+    mutation.mutate({
+      patientId: selectedPatientId,
+      startsAt,
+      endsAt,
+      visitType,
+      notes,
+      dentistId: profile.id,
+      clinicId: profile.clinicId ?? null,
+    });
   }
 
   function resetForm() {

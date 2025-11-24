@@ -27,6 +27,7 @@ import { formatDateTime } from '@/utils/date';
 import { formatCurrency } from '@/utils/money';
 import { AddTreatmentModal } from '@/features/treatments/AddTreatmentModal';
 import { CompleteTreatmentModal } from '@/features/treatments/CompleteTreatmentModal';
+import { EditPatientTreatmentModal } from '@/features/treatments/EditPatientTreatmentModal';
 import { CreateBudgetModal } from '@/features/budgets/CreateBudgetModal';
 import { BudgetDetailModal } from '@/features/budgets/BudgetDetailModal';
 import { WhatsAppComposer } from '@/features/whatsapp/WhatsAppComposer';
@@ -35,6 +36,7 @@ import type { Budget, PatientEvaluation, PatientTreatment } from '@/types/domain
 import { openExternalUrl } from '@/lib/platform';
 import { PatientEvaluationModal } from '@/features/evaluations/PatientEvaluationModal';
 import { PatientEvaluationCard } from '@/features/evaluations/PatientEvaluationCard';
+import { EditPatientModal } from '@/features/patients/EditPatientModal';
 
 const segments = [
   { value: 'visits', label: 'Visitas' },
@@ -56,6 +58,8 @@ export function PatientDetailPage() {
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [isEvaluationModalOpen, setEvaluationModalOpen] = useState(false);
   const [evaluationToEdit, setEvaluationToEdit] = useState<PatientEvaluation | null>(null);
+  const [isEditPatientOpen, setEditPatientOpen] = useState(false);
+  const [treatmentToEdit, setTreatmentToEdit] = useState<PatientTreatment | null>(null);
 
   const detailQuery = useQuery({
     queryKey: queryKeys.patientDetail(id ?? ''),
@@ -118,6 +122,9 @@ export function PatientDetailPage() {
       <IonCard>
         <IonCardHeader>
           <IonCardTitle>Datos del paciente</IonCardTitle>
+          <IonButton size="small" fill="clear" onClick={() => setEditPatientOpen(true)}>
+            Editar
+          </IonButton>
         </IonCardHeader>
         <IonCardContent>
           <IonGrid>
@@ -213,6 +220,9 @@ export function PatientDetailPage() {
                   <h2>{treatment.treatment?.name}</h2>
                   <p>{treatment.notes}</p>
                 </IonLabel>
+                <IonButton size="small" fill="clear" onClick={() => setTreatmentToEdit(treatment)}>
+                  Editar
+                </IonButton>
                 <IonButton size="small" fill="clear" onClick={() => setCompleteTreatment(treatment)}>
                   Marcar done
                 </IonButton>
@@ -241,6 +251,9 @@ export function PatientDetailPage() {
                       : 'Sin visita registrada'}
                   </p>
                 </IonLabel>
+                <IonButton size="small" fill="clear" onClick={() => setTreatmentToEdit(treatment)}>
+                  Editar
+                </IonButton>
                 <IonBadge color="success">
                   {formatCurrency(treatment.finalPrice ?? treatment.proposedPrice ?? 0)}
                 </IonBadge>
@@ -353,6 +366,14 @@ export function PatientDetailPage() {
         evaluation={evaluationToEdit}
         isOpen={isEvaluationModalOpen}
         onDismiss={closeEvaluationModal}
+      />
+      <EditPatientModal patient={patient} isOpen={isEditPatientOpen} onDismiss={() => setEditPatientOpen(false)} />
+      <EditPatientTreatmentModal
+        patientId={patient.id}
+        treatment={treatmentToEdit}
+        isOpen={Boolean(treatmentToEdit)}
+        onDismiss={() => setTreatmentToEdit(null)}
+        visits={appointments}
       />
     </PageLayout>
   );

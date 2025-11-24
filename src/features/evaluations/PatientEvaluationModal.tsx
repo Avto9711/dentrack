@@ -27,6 +27,7 @@ import {
 } from '@/lib/api';
 import type { GumStatus, OralHygieneLevel, PatientEvaluation } from '@/types/domain';
 import { queryKeys } from '@/lib/queryKeys';
+import { useAuth } from '@/context/AuthContext';
 
 interface PatientEvaluationModalProps {
   patientId: string;
@@ -82,6 +83,7 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
   const [form, setForm] = useState<EvaluationFormState>(buildStateFromEvaluation(evaluation));
   const queryClient = useQueryClient();
   const [presentToast] = useIonToast();
+  const { profile } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -218,6 +220,7 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
           input: {
             evaluationId: evaluation!.id,
             ...payload,
+            dentistId: profile?.id,
           },
         }
       : {
@@ -225,6 +228,7 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
           input: {
             patientId,
             ...payload,
+            dentistId: profile?.id,
           },
         };
 

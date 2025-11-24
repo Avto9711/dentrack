@@ -18,6 +18,8 @@ import {
 import type { Patient } from '@/types/domain';
 import { buildWhatsAppUrl, whatsappTemplates } from './templates';
 import { openExternalUrl } from '@/lib/platform';
+import { useAuth } from '@/context/AuthContext';
+import { logWhatsAppMessage } from '@/lib/api';
 
 export interface WhatsAppComposerProps {
   patient: Patient;
@@ -25,6 +27,7 @@ export interface WhatsAppComposerProps {
   onDismiss: () => void;
   suggestedAmount?: number;
   summary?: string;
+  appointmentId?: string;
 }
 
 export function WhatsAppComposer({
@@ -33,9 +36,11 @@ export function WhatsAppComposer({
   onDismiss,
   suggestedAmount,
   summary,
+  appointmentId,
 }: WhatsAppComposerProps) {
   const [templateId, setTemplateId] = useState('budget');
   const [message, setMessage] = useState('');
+  const { profile } = useAuth();
 
   const defaultMessage = useMemo(() => {
     const template = whatsappTemplates.find((tpl) => tpl.id === templateId) ?? whatsappTemplates[0];
@@ -44,11 +49,25 @@ export function WhatsAppComposer({
 
   const hasPhone = Boolean(patient.phone);
 
-  function handleOpenWhatsApp() {
+  async function handleOpenWhatsApp() {
     const finalMessage = message.trim() || defaultMessage;
     if (!patient.phone) return;
     const url = buildWhatsAppUrl(patient.phone, finalMessage);
     openExternalUrl(url);
+    if (profile?.id) {
+      try {
+        await logWhatsAppMessage({
+          patientId: patient.id,
+          phone: patient.phone,
+          message: finalMessage,
+          createdBy: profile.id,
+          clinicId: patient.clinicId ?? profile.clinicId ?? null,
+          appointmentId,
+        });
+      } catch (error) {
+        console.warn('No se pudo registrar el mensaje de WhatsApp', error);
+      }
+    }
     onDismiss();
   }
 

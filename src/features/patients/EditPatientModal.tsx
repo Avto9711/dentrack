@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   IonModal,
   IonHeader,
@@ -16,56 +16,59 @@ import {
   IonSelectOption,
 } from '@ionic/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createPatient, type CreatePatientInput } from '@/lib/api';
-import { queryKeys } from '@/lib/queryKeys';
+import { updatePatient, type UpdatePatientInput, type CreatePatientInput } from '@/lib/api';
+import type { Patient } from '@/types/domain';
 import { useIonToast } from '@ionic/react';
-import { useAuth } from '@/context/AuthContext';
+import { queryKeys } from '@/lib/queryKeys';
 
-interface AddPatientModalProps {
+interface EditPatientModalProps {
+  patient: Patient;
   isOpen: boolean;
   onDismiss: () => void;
 }
 
-const initialState: CreatePatientInput = {
-  firstName: '',
-  lastName: '',
-  phone: '',
-  email: '',
-  address: '',
-  notes: '',
-  birthDate: '',
-  gender: undefined,
-  clinicId: undefined,
-};
+export function EditPatientModal({ patient, isOpen, onDismiss }: EditPatientModalProps) {
+  const initialState: CreatePatientInput = useMemo(
+    () => ({
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      phone: patient.phone ?? '',
+      email: patient.email ?? '',
+      address: patient.address ?? '',
+      notes: patient.notes ?? '',
+      birthDate: patient.birthDate ?? '',
+      gender: patient.gender ?? undefined,
+      clinicId: patient.clinicId ?? undefined,
+    }),
+    [patient]
+  );
 
-export function AddPatientModal({ isOpen, onDismiss }: AddPatientModalProps) {
   const [form, setForm] = useState<CreatePatientInput>(initialState);
   const queryClient = useQueryClient();
   const [presentToast] = useIonToast();
-  const { profile } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
-      setForm((prev) => ({ ...prev, clinicId: profile?.clinicId ?? prev.clinicId }));
-    }
-  }, [isOpen, profile?.clinicId]);
-
-  const mutation = useMutation({
-    mutationFn: createPatient,
-    onSuccess: async () => {
-      presentToast({ message: 'Paciente creado', duration: 2000, color: 'success' });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.patients() });
       setForm(initialState);
-      onDismiss();
-    },
-    onError: (error: Error) => {
-      presentToast({ message: error.message, color: 'danger', duration: 2500 });
-    },
-  });
+    }
+  }, [initialState, isOpen]);
 
   function updateField<K extends keyof CreatePatientInput>(key: K, value: CreatePatientInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
+
+  const mutation = useMutation({
+    mutationFn: (input: UpdatePatientInput) => updatePatient(input),
+    onSuccess: async () => {
+      presentToast({ message: 'Paciente actualizado', duration: 2000, color: 'success' });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.patientDetail(patient.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.patients() }),
+      ]);
+      onDismiss();
+    },
+    onError: (error: Error) => presentToast({ message: error.message, color: 'danger', duration: 2500 }),
+  });
 
   function handleSave() {
     if (!form.firstName || !form.lastName) {
@@ -73,30 +76,21 @@ export function AddPatientModal({ isOpen, onDismiss }: AddPatientModalProps) {
       return;
     }
     mutation.mutate({
+      patientId: patient.id,
       ...form,
-      clinicId: form.clinicId ?? profile?.clinicId ?? null,
-      createdBy: profile?.id,
     });
   }
 
-  const isBusy = mutation.isPending;
-
   return (
-    <IonModal
-      isOpen={isOpen}
-      onDidDismiss={onDismiss}
-      initialBreakpoint={0.8}
-      breakpoints={[0, 0.5, 0.8, 1]}
-      handleBehavior="cycle"
-    >
+    <IonModal isOpen={isOpen} onDidDismiss={onDismiss} initialBreakpoint={0.8} breakpoints={[0, 0.5, 0.8, 1]}>
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
             <IonButton onClick={onDismiss}>Cancelar</IonButton>
           </IonButtons>
-          <IonTitle>Nuevo paciente</IonTitle>
+          <IonTitle>Editar paciente</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={handleSave} disabled={isBusy} strong>
+            <IonButton onClick={handleSave} disabled={mutation.isPending} strong>
               Guardar
             </IonButton>
           </IonButtons>
@@ -114,19 +108,15 @@ export function AddPatientModal({ isOpen, onDismiss }: AddPatientModalProps) {
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Teléfono</IonLabel>
-            <IonInput value={form.phone} onIonInput={(e) => updateField('phone', e.detail.value ?? '')} type="tel" />
+            <IonInput value={form.phone} type="tel" onIonInput={(e) => updateField('phone', e.detail.value ?? '')} />
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Email</IonLabel>
-            <IonInput value={form.email} onIonInput={(e) => updateField('email', e.detail.value ?? '')} type="email" />
+            <IonInput value={form.email} type="email" onIonInput={(e) => updateField('email', e.detail.value ?? '')} />
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Dirección</IonLabel>
-            <IonTextarea
-              autoGrow
-              value={form.address}
-              onIonInput={(e) => updateField('address', e.detail.value ?? '')}
-            />
+            <IonTextarea autoGrow value={form.address} onIonInput={(e) => updateField('address', e.detail.value ?? '')} />
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Fecha de nacimiento</IonLabel>
@@ -134,11 +124,7 @@ export function AddPatientModal({ isOpen, onDismiss }: AddPatientModalProps) {
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Género</IonLabel>
-            <IonSelect
-              placeholder="Seleccionar"
-              value={form.gender}
-              onIonChange={(e) => updateField('gender', e.detail.value ?? undefined)}
-            >
+            <IonSelect value={form.gender} placeholder="Seleccionar" onIonChange={(e) => updateField('gender', e.detail.value ?? undefined)}>
               <IonSelectOption value="female">Femenino</IonSelectOption>
               <IonSelectOption value="male">Masculino</IonSelectOption>
               <IonSelectOption value="other">Otro</IonSelectOption>

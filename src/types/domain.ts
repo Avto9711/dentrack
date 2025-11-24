@@ -9,6 +9,8 @@ export type VisitType = 'evaluation' | 'treatment' | 'control' | 'other';
 
 export type TreatmentStatus = 'planned' | 'accepted' | 'scheduled' | 'completed' | 'declined';
 
+export type UserRole = 'admin' | 'dentist' | 'assistant';
+
 export type BudgetStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'cancelled';
 
 export interface Patient {
@@ -16,12 +18,14 @@ export interface Patient {
   firstName: string;
   lastName: string;
   fullName: string;
+  clinicId?: string | null;
   phone?: string | null;
   email?: string | null;
   address?: string | null;
   notes?: string | null;
   birthDate?: string | null;
   gender?: string | null;
+  createdBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -88,6 +92,7 @@ export interface Budget {
   currencyCode: string;
   validUntil?: string | null;
   notes?: string | null;
+  createdBy?: string | null;
   createdAt: string;
   updatedAt: string;
   items?: BudgetItem[];
