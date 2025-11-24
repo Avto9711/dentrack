@@ -48,8 +48,11 @@ const segments = [
 
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const params = new URLSearchParams(window.location.search);
+  const initialSegment = (params.get('segment') as (typeof segments)[number]['value']) ?? 'visits';
+
   const navigate = useNavigate();
-  const [segment, setSegment] = useState<(typeof segments)[number]['value']>('visits');
+  const [segment, setSegment] = useState<(typeof segments)[number]['value']>(initialSegment);
   const [isAddTreatmentOpen, setAddTreatmentOpen] = useState(false);
   const [completeTreatment, setCompleteTreatment] = useState<PatientTreatment | null>(null);
   const [isBudgetModalOpen, setBudgetModalOpen] = useState(false);

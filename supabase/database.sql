@@ -244,3 +244,31 @@ CREATE TABLE public.patient_evaluations (
 
 CREATE INDEX idx_patient_evaluations_patient ON public.patient_evaluations (patient_id);
 CREATE INDEX idx_patient_evaluations_date ON public.patient_evaluations (evaluation_date);
+
+CREATE TABLE IF NOT EXISTS public.patient_dentograms (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  patient_id uuid NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+  evaluation_id uuid NOT NULL REFERENCES public.patient_evaluations(id) ON DELETE CASCADE,
+  tooth_number text NOT NULL,
+  surface text NOT NULL,
+  finding text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_patient_dentograms_patient ON public.patient_dentograms (patient_id);
+CREATE INDEX IF NOT EXISTS idx_patient_dentograms_evaluation ON public.patient_dentograms (evaluation_id);
+
+INSERT INTO public.patient_dentograms (patient_id, evaluation_id, tooth_number, surface, finding)
+SELECT
+  pe.patient_id,
+  pe.id,
+  tooth.key AS tooth_number,
+  surface.key AS surface,
+  surface.value AS finding
+FROM public.patient_evaluations pe
+  CROSS JOIN LATERAL jsonb_each(pe.dentogram) AS tooth(key, value)
+  CROSS JOIN LATERAL jsonb_each_text(tooth.value) AS surface(key, value)
+WHERE pe.dentogram IS NOT NULL;
+
+ALTER TABLE public.patient_evaluations
+  DROP COLUMN IF EXISTS dentogram;

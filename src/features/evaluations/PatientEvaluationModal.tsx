@@ -15,19 +15,33 @@ import {
   IonToggle,
   IonSelect,
   IonSelectOption,
+  IonText,
   useIonToast,
 } from '@ionic/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   createPatientEvaluation,
+  savePatientDentogramEntries,
   updatePatientEvaluation,
   type CreatePatientEvaluationInput,
+  type DentogramEntryInput,
   type PatientEvaluationInput,
   type UpdatePatientEvaluationInput,
 } from '@/lib/api';
 import type { GumStatus, OralHygieneLevel, PatientEvaluation } from '@/types/domain';
 import { queryKeys } from '@/lib/queryKeys';
 import { useAuth } from '@/context/AuthContext';
+
+const toothOptions = [
+  '11','12','13','14','15','16','17','18',
+  '21','22','23','24','25','26','27','28',
+  '31','32','33','34','35','36','37','38',
+  '41','42','43','44','45','46','47','48',
+];
+
+const surfaceOptions = ['oclusional', 'mesial', 'distal', 'vestibular', 'lingual', 'palatino'];
+
+const findingOptions = ['caries', 'restaurado', 'resina', 'sellante', 'ausente', 'sano'];
 
 interface PatientEvaluationModalProps {
   patientId: string;
@@ -38,12 +52,11 @@ interface PatientEvaluationModalProps {
 
 type EvaluationFormState = PatientEvaluationInput & {
   evaluationDate: string;
-  dentogramText: string;
 };
 
 type SubmitPayload =
-  | { type: 'create'; input: CreatePatientEvaluationInput }
-  | { type: 'update'; input: UpdatePatientEvaluationInput };
+  | { type: 'create'; input: CreatePatientEvaluationInput; entries: DentogramEntryInput[] }
+  | { type: 'update'; input: UpdatePatientEvaluationInput; entries: DentogramEntryInput[] };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -64,8 +77,6 @@ function buildStateFromEvaluation(evaluation?: PatientEvaluation | null): Evalua
     hasCaries: evaluation?.hasCaries ?? false,
     hasPlaque: evaluation?.hasPlaque ?? false,
     otherObservations: evaluation?.otherObservations ?? null,
-    dentogram: evaluation?.dentogram ?? null,
-    dentogramText: evaluation?.dentogram ? JSON.stringify(evaluation.dentogram, null, 2) : '',
     diagnosis: evaluation?.diagnosis ?? null,
     planProphylaxis: evaluation?.planProphylaxis ?? false,
     planObturation: evaluation?.planObturation ?? false,
@@ -81,6 +92,13 @@ function buildStateFromEvaluation(evaluation?: PatientEvaluation | null): Evalua
 
 export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismiss }: PatientEvaluationModalProps) {
   const [form, setForm] = useState<EvaluationFormState>(buildStateFromEvaluation(evaluation));
+  const [dentogramEntries, setDentogramEntries] = useState<DentogramEntryInput[]>(
+    evaluation?.dentogramEntries?.map((entry) => ({
+      toothNumber: entry.toothNumber,
+      surface: entry.surface,
+      finding: entry.finding,
+    })) ?? []
+  );
   const queryClient = useQueryClient();
   const [presentToast] = useIonToast();
   const { profile } = useAuth();
@@ -88,15 +106,24 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
   useEffect(() => {
     if (isOpen) {
       setForm(buildStateFromEvaluation(evaluation));
+      setDentogramEntries(
+        evaluation?.dentogramEntries?.map((entry) => ({
+          toothNumber: entry.toothNumber,
+          surface: entry.surface,
+          finding: entry.finding,
+        })) ?? []
+      );
     }
   }, [evaluation, isOpen]);
 
   const mutation = useMutation({
     mutationFn: async (payload: SubmitPayload) => {
-      if (payload.type === 'create') {
-        return createPatientEvaluation(payload.input);
-      }
-      return updatePatientEvaluation(payload.input);
+      const evaluationRecord = payload.type === 'create'
+        ? await createPatientEvaluation(payload.input)
+        : await updatePatientEvaluation(payload.input);
+
+      await savePatientDentogramEntries(evaluationRecord.id, evaluationRecord.patientId, payload.entries);
+      return evaluationRecord;
     },
     onSuccess: async (_data, variables) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.patientDetail(patientId) });
@@ -136,36 +163,7 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
     updateField(key, checked as EvaluationFormState[typeof key]);
   }
 
-  function parseDentogram(): Record<string, unknown> | null {
-    if (!form.dentogramText?.trim()) {
-      return null;
-    }
-    try {
-      return JSON.parse(form.dentogramText);
-    } catch (error) {
-      presentToast({
-        message: 'El dentigrama debe ser un JSON válido',
-        color: 'warning',
-        duration: 2500,
-      });
-      throw error;
-    }
-  }
-
   function buildPayload(): PatientEvaluationInput {
-    const dentogramData = (() => {
-      try {
-        return parseDentogram();
-      } catch {
-        return undefined;
-      }
-    })();
-
-    if (dentogramData === undefined) {
-      // Invalid JSON already handled via toast
-      throw new Error('invalid-dentogram');
-    }
-
     const sanitize = (value?: string | null) => value?.trim() || null;
 
     return {
@@ -184,7 +182,6 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
       hasCaries: form.hasCaries,
       hasPlaque: form.hasPlaque,
       otherObservations: sanitize(form.otherObservations),
-      dentogram: dentogramData,
       diagnosis: sanitize(form.diagnosis),
       planProphylaxis: form.planProphylaxis,
       planObturation: form.planObturation,
@@ -199,20 +196,16 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
   }
 
   function handleSave() {
-    let payload: PatientEvaluationInput;
-    try {
-      payload = buildPayload();
-    } catch (error) {
-      if ((error as Error).message !== 'invalid-dentogram') {
-        presentToast({ message: 'Revisa los datos ingresados', color: 'warning', duration: 2000 });
-      }
-      return;
-    }
+    const payload = buildPayload();
 
     if (!payload.consultReason) {
       presentToast({ message: 'Ingresa el motivo de consulta', color: 'warning', duration: 2000 });
       return;
     }
+
+    const filteredEntries = dentogramEntries.filter(
+      (entry) => entry.toothNumber && entry.surface && entry.finding
+    );
 
     const submitPayload: SubmitPayload = isEditing
       ? {
@@ -222,6 +215,7 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
             ...payload,
             dentistId: profile?.id,
           },
+          entries: filteredEntries,
         }
       : {
           type: 'create',
@@ -230,6 +224,7 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
             ...payload,
             dentistId: profile?.id,
           },
+          entries: filteredEntries,
         };
 
     mutation.mutate(submitPayload);
@@ -392,15 +387,102 @@ export function PatientEvaluationModal({ patientId, evaluation, isOpen, onDismis
               onIonInput={(event) => updateField('otherObservations', event.detail.value ?? '')}
             />
           </IonItem>
-          <IonItem>
-            <IonLabel position="stacked">Dentigrama (JSON)</IonLabel>
-            <IonTextarea
-              autoGrow
-              value={form.dentogramText}
-              onIonInput={(event) => updateField('dentogramText', event.detail.value ?? '')}
-              placeholder='{"11":{"occlusal":"caries"}}'
-            />
-          </IonItem>
+          <IonText className="ion-padding" color="medium">
+            Dentigrama
+          </IonText>
+          <IonButton expand="block" fill="outline" onClick={() =>
+            setDentogramEntries((prev) => [...prev, { toothNumber: '', surface: '', finding: '' }])
+          }>
+            Agregar pieza
+          </IonButton>
+          {dentogramEntries.length === 0 && (
+            <IonText className="ion-padding" color="medium">
+              No hay piezas registradas.
+            </IonText>
+          )}
+          {dentogramEntries.map((entry, index) => (
+            <div key={`dentogram-entry-${index}`}>
+              <IonItem>
+                <IonLabel position="stacked">Pieza</IonLabel>
+                <IonSelect
+                  placeholder="Seleccionar"
+                  value={entry.toothNumber || undefined}
+                  onIonChange={(event) =>
+                    setDentogramEntries((prev) => {
+                      const next = [...prev];
+                      next[index] = {
+                        ...next[index],
+                        toothNumber: event.detail.value ?? '',
+                      };
+                      return next;
+                    })
+                  }
+                >
+                  {toothOptions.map((option) => (
+                    <IonSelectOption key={option} value={option}>
+                      {option}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel position="stacked">Cara</IonLabel>
+                <IonSelect
+                  placeholder="Seleccionar"
+                  value={entry.surface || undefined}
+                  onIonChange={(event) =>
+                    setDentogramEntries((prev) => {
+                      const next = [...prev];
+                      next[index] = {
+                        ...next[index],
+                        surface: event.detail.value ?? '',
+                      };
+                      return next;
+                    })
+                  }
+                >
+                  {surfaceOptions.map((option) => (
+                    <IonSelectOption key={option} value={option}>
+                      {option}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel position="stacked">Hallazgo</IonLabel>
+                <IonSelect
+                  placeholder="Seleccionar"
+                  value={entry.finding || undefined}
+                  onIonChange={(event) =>
+                    setDentogramEntries((prev) => {
+                      const next = [...prev];
+                      next[index] = {
+                        ...next[index],
+                        finding: event.detail.value ?? '',
+                      };
+                      return next;
+                    })
+                  }
+                >
+                  {findingOptions.map((option) => (
+                    <IonSelectOption key={option} value={option}>
+                      {option}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+                <IonButton
+                  slot="end"
+                  fill="clear"
+                  color="danger"
+                  onClick={() =>
+                    setDentogramEntries((prev) => prev.filter((_, entryIndex) => entryIndex !== index))
+                  }
+                >
+                  Eliminar
+                </IonButton>
+              </IonItem>
+            </div>
+          ))}
           <IonItem>
             <IonLabel position="stacked">Diagnóstico</IonLabel>
             <IonTextarea

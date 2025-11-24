@@ -82,7 +82,13 @@ export function DashboardPage() {
                 )}
                 <IonList>
                   {pendingTreatments.map((treatment) => (
-                    <IonItem key={treatment.id}>
+                    <IonItem
+                      key={treatment.id}
+                      button
+                      onClick={() =>
+                        treatment.patientId && navigate(`/patients/${treatment.patientId}?segment=treatments`)
+                      }
+                    >
                       <IonLabel>
                         <h2>{treatment.treatment?.name ?? 'Tratamiento'}</h2>
                         <p>

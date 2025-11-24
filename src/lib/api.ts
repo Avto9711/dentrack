@@ -9,6 +9,7 @@ import type {
   OralHygieneLevel,
   Patient,
   PatientEvaluation,
+  PatientDentogramEntry,
   PatientSummary,
   PatientTreatment,
   PatientTreatmentWithPatient,
@@ -104,7 +105,6 @@ export interface PatientEvaluationInput {
   hasCaries: boolean;
   hasPlaque: boolean;
   otherObservations?: string | null;
-  dentogram?: Record<string, unknown> | null;
   diagnosis?: string | null;
   planProphylaxis: boolean;
   planObturation: boolean;
@@ -134,6 +134,12 @@ export interface LogWhatsAppMessageInput {
   createdBy: string;
   clinicId?: string | null;
   appointmentId?: string;
+}
+
+export interface DentogramEntryInput {
+  toothNumber: string;
+  surface: string;
+  finding: string;
 }
 
 const PATIENT_COLUMNS = `
@@ -211,6 +217,16 @@ const APPOINTMENT_SELECT = `
   patients:patients(${PATIENT_COLUMNS})
 `;
 
+const DENTOGRAM_SELECT = `
+  id,
+  patient_id,
+  evaluation_id,
+  tooth_number,
+  surface,
+  finding,
+  created_at
+`;
+
 const PATIENT_EVALUATION_SELECT = `
   id,
   patient_id,
@@ -230,7 +246,6 @@ const PATIENT_EVALUATION_SELECT = `
   has_caries,
   has_plaque,
   other_observations,
-  dentogram,
   diagnosis,
   plan_prophylaxis,
   plan_obturation,
@@ -242,7 +257,8 @@ const PATIENT_EVALUATION_SELECT = `
   plan_other,
   dentist_signature,
   created_at,
-  updated_at
+  updated_at,
+  patient_dentograms:patient_dentograms(${DENTOGRAM_SELECT})
 `;
 
 function mapPatient(row: any): Patient {
@@ -264,18 +280,19 @@ function mapPatient(row: any): Patient {
   };
 }
 
+function mapPatientDentogramEntry(row: any): PatientDentogramEntry {
+  return {
+    id: row.id,
+    patientId: row.patient_id,
+    evaluationId: row.evaluation_id,
+    toothNumber: row.tooth_number,
+    surface: row.surface,
+    finding: row.finding,
+    createdAt: row.created_at,
+  };
+}
+
 function mapPatientEvaluation(row: any): PatientEvaluation {
-  let dentogramData: Record<string, unknown> | null = null;
-  if (row.dentogram && typeof row.dentogram === 'object') {
-    dentogramData = row.dentogram;
-  } else if (typeof row.dentogram === 'string') {
-    try {
-      dentogramData = JSON.parse(row.dentogram);
-    } catch (error) {
-      console.warn('Failed to parse dentogram JSON', error);
-      dentogramData = null;
-    }
-  }
   return {
     id: row.id,
     patientId: row.patient_id,
@@ -295,7 +312,6 @@ function mapPatientEvaluation(row: any): PatientEvaluation {
     hasCaries: Boolean(row.has_caries),
     hasPlaque: Boolean(row.has_plaque),
     otherObservations: row.other_observations,
-    dentogram: dentogramData,
     diagnosis: row.diagnosis,
     planProphylaxis: Boolean(row.plan_prophylaxis),
     planObturation: Boolean(row.plan_obturation),
@@ -308,6 +324,9 @@ function mapPatientEvaluation(row: any): PatientEvaluation {
     dentistSignature: row.dentist_signature,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    dentogramEntries: Array.isArray(row.patient_dentograms)
+      ? row.patient_dentograms.map(mapPatientDentogramEntry)
+      : [],
   };
 }
 
@@ -518,7 +537,6 @@ function buildEvaluationPayload(input: PatientEvaluationInput) {
     has_caries: input.hasCaries,
     has_plaque: input.hasPlaque,
     other_observations: input.otherObservations || null,
-    dentogram: input.dentogram ?? null,
     diagnosis: input.diagnosis || null,
     plan_prophylaxis: input.planProphylaxis,
     plan_obturation: input.planObturation,
@@ -848,5 +866,28 @@ export async function logWhatsAppMessage(input: LogWhatsAppMessageInput): Promis
   };
 
   const { error } = await supabase.from('whatsapp_logs').insert(payload);
+  if (error) throw error;
+}
+
+export async function savePatientDentogramEntries(
+  evaluationId: string,
+  patientId: string,
+  entries: DentogramEntryInput[]
+): Promise<void> {
+  await supabase.from('patient_dentograms').delete().eq('evaluation_id', evaluationId);
+
+  if (entries.length === 0) {
+    return;
+  }
+
+  const payload = entries.map((entry) => ({
+    evaluation_id: evaluationId,
+    patient_id: patientId,
+    tooth_number: entry.toothNumber,
+    surface: entry.surface,
+    finding: entry.finding,
+  }));
+
+  const { error } = await supabase.from('patient_dentograms').insert(payload);
   if (error) throw error;
 }

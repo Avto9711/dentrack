@@ -121,7 +121,6 @@ export interface PatientEvaluation {
   hasCaries: boolean;
   hasPlaque: boolean;
   otherObservations?: string | null;
-  dentogram?: Record<string, unknown> | null;
   diagnosis?: string | null;
   planProphylaxis: boolean;
   planObturation: boolean;
@@ -134,6 +133,17 @@ export interface PatientEvaluation {
   dentistSignature?: string | null;
   createdAt: string;
   updatedAt: string;
+  dentogramEntries?: PatientDentogramEntry[];
+}
+
+export interface PatientDentogramEntry {
+  id: string;
+  patientId: string;
+  evaluationId: string;
+  toothNumber: string;
+  surface: string;
+  finding: string;
+  createdAt: string;
 }
 
 export interface WhatsAppMessageTemplate {

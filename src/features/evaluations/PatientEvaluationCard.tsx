@@ -102,16 +102,22 @@ export function PatientEvaluationCard({ evaluation, onEdit }: PatientEvaluationC
               <p>Observaciones: {evaluation.otherObservations || 'Sin observaciones'}</p>
             </IonLabel>
           </IonItem>
-          {evaluation.dentogram && (
-            <IonItem>
-              <IonLabel>
-                <h3>Dentigrama</h3>
-                <IonText>
-                  <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(evaluation.dentogram, null, 2)}</pre>
-                </IonText>
-              </IonLabel>
-            </IonItem>
-          )}
+          <IonItem>
+            <IonLabel>
+              <h3>Dentigrama</h3>
+              {evaluation.dentogramEntries && evaluation.dentogramEntries.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {evaluation.dentogramEntries.map((entry) => (
+                    <IonChip key={entry.id}>
+                      {entry.toothNumber} · {entry.surface} · {entry.finding}
+                    </IonChip>
+                  ))}
+                </div>
+              ) : (
+                <IonText color="medium">Sin piezas registradas</IonText>
+              )}
+            </IonLabel>
+          </IonItem>
           <IonItem>
             <IonLabel>
               <h3>Plan de tratamiento</h3>
