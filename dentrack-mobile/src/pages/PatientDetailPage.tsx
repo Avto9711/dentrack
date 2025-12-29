@@ -133,25 +133,19 @@ export function PatientDetailPage() {
         </IonButton>
       }
     >
-      <IonCard className="page-block">
+      <IonCard className="page-block glass-card" style={{ marginTop: 16 }}>
         <IonCardHeader className="patient-card-header">
+          <div className="avatar-circle" style={{ width: 64, height: 64, fontSize: '1.5rem', borderRadius: 20, marginBottom: 8 }}>
+            {patient.fullName.charAt(0)}
+          </div>
           <div className="patient-card-header__title">
             <div className="patient-card-header__title-row">
-              <IonCardTitle>{patient.fullName}</IonCardTitle>
-              <IonButton
-                size="small"
-                fill="clear"
-                className="patient-card-header__edit"
-                onClick={() => setEditPatientOpen(true)}
-              >
-                Editar
-              </IonButton>
+              <IonCardTitle style={{ fontSize: '1.4rem' }}>{patient.fullName}</IonCardTitle>
             </div>
             <div className="patient-card-header__contacts">
               {patient.phone && (
                 <IonButton
                   className="contact-circle-button"
-                  size="small"
                   fill="solid"
                   onClick={() => openExternalUrl(`tel:${patient.phone}`)}
                 >
@@ -161,7 +155,6 @@ export function PatientDetailPage() {
               {patient.email && (
                 <IonButton
                   className="contact-circle-button"
-                  size="small"
                   fill="solid"
                   onClick={() => openExternalUrl(`mailto:${patient.email}`)}
                 >
@@ -170,39 +163,36 @@ export function PatientDetailPage() {
               )}
               <IonButton
                 className="contact-circle-button"
-                size="small"
                 fill="solid"
                 onClick={() => setShowWhatsApp(true)}
               >
                 <IonIcon icon={chatboxEllipsesOutline} slot="icon-only" />
               </IonButton>
+              <IonButton
+                className="contact-circle-button"
+                fill="solid"
+                onClick={() => setEditPatientOpen(true)}
+                style={{ '--background': 'var(--app-surface-muted)', '--color': 'var(--app-text-body)' }}
+              >
+                <IonIcon icon={personOutline} slot="icon-only" />
+              </IonButton>
             </div>
           </div>
         </IonCardHeader>
-        <IonCardContent>
-          <IonGrid>
+        <IonCardContent style={{ paddingTop: 16 }}>
+          <IonGrid className="ion-no-padding">
             <IonRow>
-              <IonCol size="12" sizeMd="6">
-                <IonText color="medium">
-                  <strong>Dirección:</strong> {patient.address || 'No registrada'}
-                </IonText>
+              <IonCol size="6">
+                <IonText color="medium" style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 600 }}>Dirección</IonText>
+                <p style={{ margin: '4px 0 12px', fontSize: '0.9rem' }}>{patient.address || 'No registrada'}</p>
               </IonCol>
-              <IonCol size="12" sizeMd="6">
-                <IonText color="medium">
-                  <strong>Fecha de nacimiento:</strong> {patient.birthDate || 'Sin dato'}
-                </IonText>
+              <IonCol size="6">
+                <IonText color="medium" style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 600 }}>Nacimiento</IonText>
+                <p style={{ margin: '4px 0 12px', fontSize: '0.9rem' }}>{patient.birthDate || 'Sin dato'}</p>
               </IonCol>
-            </IonRow>
-            <IonRow>
-              <IonCol size="12" sizeMd="6">
-                <IonText color="medium">
-                  <strong>Género:</strong> {patient.gender || 'Sin especificar'}
-                </IonText>
-              </IonCol>
-            </IonRow>
-            <IonRow>
               <IonCol size="12">
-                <IonText>{patient.notes || 'Sin notas'}</IonText>
+                <IonText color="medium" style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 600 }}>Notas</IonText>
+                <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: 'var(--app-text-body)' }}>{patient.notes || 'Sin notas adicionales'}</p>
               </IonCol>
             </IonRow>
           </IonGrid>
@@ -222,9 +212,9 @@ export function PatientDetailPage() {
             <IonSegmentButton
               key={item.value}
               value={item.value}
-              style={{ minWidth: 56, padding: '6px 0' }}
+              style={{ minWidth: 60 }}
             >
-              <IonIcon icon={item.icon} aria-label={item.label} />
+              <IonIcon icon={item.icon} style={{ fontSize: '1.2rem' }} />
             </IonSegmentButton>
           ))}
         </IonSegment>
@@ -297,8 +287,8 @@ export function PatientDetailPage() {
                       <p>
                         {treatment.completedInVisit
                           ? `Visita: ${formatDateTime(
-                              visitsById.get(treatment.completedInVisit)?.startsAt ?? ''
-                            )}`
+                            visitsById.get(treatment.completedInVisit)?.startsAt ?? ''
+                          )}`
                           : 'Sin visita registrada'}
                       </p>
                     </IonLabel>
