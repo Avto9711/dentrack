@@ -2,3 +2,5 @@ node_modules
 src/**/*.js
 dist/
 supabase/.temp/
+dentrack-web/.env
+dentrack-mobile/.env
