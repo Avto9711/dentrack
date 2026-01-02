@@ -11,7 +11,7 @@
   --app-spacing-sm: 12px;
   --app-spacing-md: 16px;
   --app-spacing-lg: 24px;
-  
+
   /* Modern Palette */
   --ion-color-primary: #0ea5e9;
   --ion-color-primary-rgb: 14, 165, 233;
@@ -27,9 +27,11 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--app-text-body);
   background: radial-gradient(circle at top right, rgba(14, 165, 233, 0.05), transparent 400px),
-              radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.05), transparent 400px),
-              #f8fafc;
-  min-height: 100vh;
+    radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.05), transparent 400px),
+    #f8fafc;
+  min-height: 100dvh;
+  overflow: hidden;
+  /* Prevent body scroll, let IonContent handle it */
 }
 
 .avatar-circle {

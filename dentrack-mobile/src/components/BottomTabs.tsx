@@ -15,8 +15,16 @@ export function BottomTabs() {
   const navigate = useNavigate();
 
   return (
-    <IonFooter style={{ borderTop: '1px solid var(--app-border-soft)' }}>
-      <IonToolbar style={{ '--padding-top': '8px', '--padding-bottom': '8px' }}>
+    <IonFooter style={{
+      borderTop: '1px solid var(--app-border-soft)',
+      paddingBottom: 'max(env(safe-area-inset-bottom), 16px)',
+      background: 'rgba(255, 255, 255, 0.85)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      position: 'relative',
+      zIndex: 1000
+    }}>
+      <IonToolbar style={{ '--padding-top': '8px', '--padding-bottom': '8px', '--background': 'transparent' }}>
         <IonButtons style={{ display: 'flex', width: '100%', margin: 0, padding: '0 4px' }}>
           {tabs.map((tab) => {
             const isActive = location.pathname === tab.path;
