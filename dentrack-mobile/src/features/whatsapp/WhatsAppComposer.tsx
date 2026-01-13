@@ -20,6 +20,7 @@ import { buildWhatsAppUrl, whatsappTemplates } from './templates';
 import { openExternalUrl } from '@/lib/platform';
 import { useAuth } from '@/context/AuthContext';
 import { logWhatsAppMessage } from '@/lib/api';
+import type { WhatsAppTreatmentLine } from '@/types/domain';
 
 export interface WhatsAppComposerProps {
   patient: Patient;
@@ -28,6 +29,8 @@ export interface WhatsAppComposerProps {
   suggestedAmount?: number;
   summary?: string;
   appointmentId?: string;
+  currencyCode?: string;
+  treatments?: WhatsAppTreatmentLine[];
 }
 
 export function WhatsAppComposer({
@@ -37,6 +40,8 @@ export function WhatsAppComposer({
   suggestedAmount,
   summary,
   appointmentId,
+  currencyCode,
+  treatments,
 }: WhatsAppComposerProps) {
   const [templateId, setTemplateId] = useState('budget');
   const [message, setMessage] = useState('');
@@ -44,8 +49,8 @@ export function WhatsAppComposer({
 
   const defaultMessage = useMemo(() => {
     const template = whatsappTemplates.find((tpl) => tpl.id === templateId) ?? whatsappTemplates[0];
-    return template.buildMessage({ patient, amount: suggestedAmount, summary });
-  }, [patient, suggestedAmount, summary, templateId]);
+    return template.buildMessage({ patient, amount: suggestedAmount, summary, currencyCode, treatments });
+  }, [patient, suggestedAmount, summary, templateId, currencyCode, treatments]);
 
   const hasPhone = Boolean(patient.phone);
 

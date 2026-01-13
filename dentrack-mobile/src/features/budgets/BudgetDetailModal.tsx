@@ -30,6 +30,11 @@ export function BudgetDetailModal({ budget, isOpen, onDismiss }: BudgetDetailMod
   if (!budget) return null;
 
   const total = formatCurrency(budget.totalAmount, budget.currencyCode);
+  const treatmentBreakdown =
+    budget.items?.map((item) => ({
+      name: item.treatment?.treatment?.name ?? item.treatment?.treatmentId ?? 'Tratamiento',
+      price: item.agreedPrice,
+    })) ?? [];
 
   return (
     <>
@@ -107,6 +112,8 @@ export function BudgetDetailModal({ budget, isOpen, onDismiss }: BudgetDetailMod
           onDismiss={() => setShowComposer(false)}
           suggestedAmount={budget.totalAmount}
           summary={`${budget.items?.length ?? 0} tratamientos`}
+          currencyCode={budget.currencyCode}
+          treatments={treatmentBreakdown}
         />
       )}
     </>

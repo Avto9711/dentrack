@@ -39,9 +39,9 @@ const toothOptions = [
   '41','42','43','44','45','46','47','48',
 ];
 
-const surfaceOptions = ['oclusional', 'mesial', 'distal', 'vestibular', 'lingual', 'palatino'];
+const surfaceOptions = ['oclusal', 'mesial', 'distal', 'vestibular', 'lingual', 'palatino'];
 
-const findingOptions = ['caries', 'restaurado', 'resina', 'sellante', 'ausente', 'sano'];
+const findingOptions = ['caries', 'restaurado', 'resina', 'sellante', 'ausente', 'sano','exodoncia'];
 
 interface PatientEvaluationModalProps {
   patientId: string;

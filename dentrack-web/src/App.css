@@ -105,3 +105,28 @@
 .form-full {
   grid-column: 1 / -1;
 }
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.table-actions button {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.table-actions button.danger {
+  border-color: #f87171;
+  color: #dc2626;
+}

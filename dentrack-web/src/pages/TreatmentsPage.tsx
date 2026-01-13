@@ -1,51 +1,108 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createTreatment, fetchClinics, fetchTreatments } from '@/lib/api';
+import {
+  createTreatment,
+  deleteTreatment,
+  fetchClinics,
+  fetchTreatments,
+  updateTreatment,
+} from '@/lib/api';
 import { DataTable } from '@/components/DataTable';
 import { useAuth } from '@/context/AuthContext';
+
+const initialForm = {
+  name: '',
+  code: '',
+  description: '',
+  defaultPrice: '',
+  durationMinutes: '',
+  clinicId: '',
+};
+
+type FormState = typeof initialForm;
 
 export function TreatmentsPage() {
   const treatmentsQuery = useQuery({ queryKey: ['treatments'], queryFn: fetchTreatments });
   const clinicsQuery = useQuery({ queryKey: ['clinics'], queryFn: fetchClinics });
   const { profile } = useAuth();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({
-    name: '',
-    code: '',
-    description: '',
-    defaultPrice: '',
-    durationMinutes: '',
-    clinicId: '',
-  });
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const isEditing = Boolean(editingId);
 
   const createTreatmentMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (values: FormState) =>
       createTreatment({
-        name: form.name,
-        code: form.code || undefined,
-        description: form.description || undefined,
-        defaultPrice: form.defaultPrice ? Number(form.defaultPrice) : 0,
-        durationMinutes: form.durationMinutes ? Number(form.durationMinutes) : undefined,
-        clinicId: form.clinicId || profile?.clinic_id || null,
+        name: values.name,
+        code: values.code || undefined,
+        description: values.description || undefined,
+        defaultPrice: values.defaultPrice ? Number(values.defaultPrice) : 0,
+        durationMinutes: values.durationMinutes ? Number(values.durationMinutes) : undefined,
+        clinicId: values.clinicId || profile?.clinic_id || null,
       }),
     onSuccess: () => {
-      setForm({ name: '', code: '', description: '', defaultPrice: '', durationMinutes: '', clinicId: '' });
+      setForm(initialForm);
       queryClient.invalidateQueries({ queryKey: ['treatments'] });
     },
   });
+
+  const updateTreatmentMutation = useMutation({
+    mutationFn: (values: FormState & { id: string }) =>
+      updateTreatment({
+        id: values.id,
+        name: values.name,
+        code: values.code || undefined,
+        description: values.description || undefined,
+        defaultPrice: values.defaultPrice ? Number(values.defaultPrice) : 0,
+        durationMinutes: values.durationMinutes ? Number(values.durationMinutes) : undefined,
+        clinicId: values.clinicId || profile?.clinic_id || null,
+      }),
+    onSuccess: () => {
+      setEditingId(null);
+      setForm(initialForm);
+      queryClient.invalidateQueries({ queryKey: ['treatments'] });
+    },
+  });
+
+  const deleteTreatmentMutation = useMutation({
+    mutationFn: (id: string) => deleteTreatment(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['treatments'] }),
+  });
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isEditing && editingId) {
+      updateTreatmentMutation.mutate({ ...form, id: editingId });
+    } else {
+      createTreatmentMutation.mutate(form);
+    }
+  }
+
+  function handleEdit(row: any) {
+    setEditingId(row.id);
+    setForm({
+      name: row.name ?? '',
+      code: row.code ?? '',
+      description: row.description ?? '',
+      defaultPrice: row.default_price?.toString() ?? '',
+      durationMinutes: row.default_duration_minutes?.toString() ?? '',
+      clinicId: row.clinic_id ?? '',
+    });
+  }
+
+  function handleDelete(id: string) {
+    if (!window.confirm('¿Eliminar tratamiento?')) return;
+    deleteTreatmentMutation.mutate(id);
+  }
+
+  const isSaving = createTreatmentMutation.isPending || updateTreatmentMutation.isPending;
 
   return (
     <div className="page-card">
       <div className="page-header">
         <h2>Tratamientos</h2>
       </div>
-      <form
-        className="form-card"
-        onSubmit={(event) => {
-          event.preventDefault();
-          createTreatmentMutation.mutate();
-        }}
-      >
+      <form className="form-card" onSubmit={handleSubmit}>
         <div className="form-grid">
           <label>
             Nombre
@@ -100,9 +157,23 @@ export function TreatmentsPage() {
               ))}
             </select>
           </label>
-          <button className="primary-button" type="submit" disabled={createTreatmentMutation.isPending}>
-            {createTreatmentMutation.isPending ? 'Guardando...' : 'Crear tratamiento'}
-          </button>
+          <div className="form-actions form-full">
+            {isEditing && (
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => {
+                  setEditingId(null);
+                  setForm(initialForm);
+                }}
+              >
+                Cancelar
+              </button>
+            )}
+            <button className="primary-button" type="submit" disabled={isSaving}>
+              {isSaving ? 'Guardando...' : isEditing ? 'Actualizar tratamiento' : 'Crear tratamiento'}
+            </button>
+          </div>
         </div>
       </form>
       <DataTable
@@ -120,6 +191,20 @@ export function TreatmentsPage() {
             render: (row: any) => (row.default_duration_minutes ? `${row.default_duration_minutes} min` : '—'),
           },
           { key: 'clinic_id', header: 'Clínica', render: (row: any) => row.clinic_id ?? '—' },
+          {
+            key: 'actions',
+            header: 'Acciones',
+            render: (row: any) => (
+              <div className="table-actions">
+                <button type="button" onClick={() => handleEdit(row)}>
+                  Editar
+                </button>
+                <button type="button" className="danger" onClick={() => handleDelete(row.id)}>
+                  Eliminar
+                </button>
+              </div>
+            ),
+          },
         ]}
         data={treatmentsQuery.data}
         isLoading={treatmentsQuery.isLoading}

@@ -1,5 +1,5 @@
 import { IonApp, IonContent, IonSpinner, setupIonicReact } from '@ionic/react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { PatientsPage } from '@/pages/PatientsPage';
 import { PatientDetailPage } from '@/pages/PatientDetailPage';
@@ -29,7 +29,7 @@ export function App() {
   return (
     <IonApp>
       {session && profile ? (
-        <BrowserRouter>
+        <HashRouter>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/patients" element={<PatientsPage />} />
@@ -39,7 +39,7 @@ export function App() {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
+        </HashRouter>
       ) : (
         <LoginPage />
       )}

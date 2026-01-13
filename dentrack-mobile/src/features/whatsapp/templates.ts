@@ -1,13 +1,25 @@
 import type { Patient, WhatsAppMessageTemplate } from '@/types/domain';
+import { formatCurrency } from '@/utils/money';
 
 export const whatsappTemplates: WhatsAppMessageTemplate[] = [
   {
     id: 'budget',
     label: 'Presupuesto',
-    buildMessage: ({ patient, amount, summary }) =>
-      `Hola ${patient.firstName}, te comparto tu presupuesto para los tratamientos acordados. Total: ${
-        amount ? `$${amount.toFixed(2)}` : 'Consultar'
-      }. ${summary ?? 'Por favor confirma si deseas iniciar el tratamiento.'}`,
+    buildMessage: ({ patient, amount, summary, treatments, currencyCode }) => {
+      const total = amount ? formatCurrency(amount, currencyCode ?? 'USD') : 'Consultar';
+      const treatmentsBlock =
+        treatments && treatments.length > 0
+          ? `\nTratamientos:\n${treatments
+              .map((item) => {
+                const priceText =
+                  item.price !== undefined && item.price !== null ? ` - ${formatCurrency(item.price, currencyCode ?? 'USD')}` : '';
+                return `• ${item.name}${priceText}`;
+              })
+              .join('\n')}`
+          : '';
+      const finalSummary = summary ?? 'Por favor confirma si deseas iniciar el tratamiento.';
+      return `Hola ${patient.firstName}, te comparto tu presupuesto para los tratamientos acordados.\nTotal: ${total}${treatmentsBlock}\n${finalSummary}`;
+    },
   },
   {
     id: 'appointment',

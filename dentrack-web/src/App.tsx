@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { AuthGuard } from '@/components/AuthGuard';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { DashboardPage } from '@/pages/DashboardPage';
@@ -13,7 +13,7 @@ import { TreatmentsPage } from '@/pages/TreatmentsPage';
 import { ClinicsPage } from '@/pages/ClinicsPage';
 import './App.css';
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: '/login',
     element: <LoginPage />,

@@ -146,8 +146,19 @@ export interface PatientDentogramEntry {
   createdAt: string;
 }
 
+export interface WhatsAppTreatmentLine {
+  name: string;
+  price?: number | null;
+}
+
 export interface WhatsAppMessageTemplate {
   id: string;
   label: string;
-  buildMessage: (ctx: { patient: Patient; amount?: number; summary?: string }) => string;
+  buildMessage: (ctx: {
+    patient: Patient;
+    amount?: number;
+    summary?: string;
+    currencyCode?: string;
+    treatments?: WhatsAppTreatmentLine[];
+  }) => string;
 }
