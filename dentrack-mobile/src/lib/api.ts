@@ -45,6 +45,18 @@ export interface CreateAppointmentInput {
   clinicId?: string | null;
 }
 
+export interface UpdateAppointmentInput {
+  appointmentId: string;
+  patientId: string;
+  startsAt: string;
+  endsAt: string;
+  visitType: VisitType;
+  notes?: string | null;
+  dentistId?: string | null;
+  clinicId?: string | null;
+  status?: AppointmentStatus;
+}
+
 export interface CreatePatientTreatmentInput {
   patientId: string;
   treatmentId: string;
@@ -224,7 +236,8 @@ const DENTOGRAM_SELECT = `
   tooth_number,
   surface,
   finding,
-  created_at
+  created_at,
+  deleted_at
 `;
 
 const PATIENT_EVALUATION_SELECT = `
@@ -325,7 +338,9 @@ function mapPatientEvaluation(row: any): PatientEvaluation {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     dentogramEntries: Array.isArray(row.patient_dentograms)
-      ? row.patient_dentograms.map(mapPatientDentogramEntry)
+      ? row.patient_dentograms
+          .filter((entry: any) => !entry.deleted_at)
+          .map(mapPatientDentogramEntry)
       : [],
   };
 }
@@ -416,6 +431,7 @@ export async function listPatients(search?: string): Promise<PatientSummary[]> {
   let query = supabase
     .from('patients')
     .select(`${PATIENT_COLUMNS}, patient_treatments(status), appointments(starts_at, status)`) // summary info only
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (search?.trim()) {
@@ -482,26 +498,35 @@ function buildPatientPayload(input: CreatePatientInput) {
 
 export async function fetchPatientDetail(patientId: string): Promise<PatientDetailPayload> {
   const [patientRes, treatmentsRes, appointmentsRes, budgetsRes, evaluationsRes] = await Promise.all([
-    supabase.from('patients').select(PATIENT_COLUMNS).eq('id', patientId).single(),
+    supabase
+      .from('patients')
+      .select(PATIENT_COLUMNS)
+      .eq('id', patientId)
+      .is('deleted_at', null)
+      .single(),
     supabase
       .from('patient_treatments')
       .select(PATIENT_TREATMENT_SELECT)
       .eq('patient_id', patientId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false }),
     supabase
       .from('appointments')
       .select(APPOINTMENT_SELECT)
       .eq('patient_id', patientId)
+      .is('deleted_at', null)
       .order('starts_at', { ascending: false }),
     supabase
       .from('budgets')
       .select(BUDGET_SELECT)
       .eq('patient_id', patientId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false }),
     supabase
       .from('patient_evaluations')
       .select(PATIENT_EVALUATION_SELECT)
       .eq('patient_id', patientId)
+      .is('deleted_at', null)
       .order('evaluation_date', { ascending: false })
       .order('created_at', { ascending: false }),
   ]);
@@ -603,9 +628,13 @@ export interface AppointmentFilter {
 }
 
 export async function fetchAppointments(filter: AppointmentFilter = {}): Promise<Appointment[]> {
-  let query = supabase.from('appointments').select(APPOINTMENT_SELECT).order('starts_at', {
-    ascending: true,
-  });
+  let query = supabase
+    .from('appointments')
+    .select(APPOINTMENT_SELECT)
+    .order('starts_at', {
+      ascending: true,
+    })
+    .is('deleted_at', null);
 
   if (filter.from) {
     query = query.gte('starts_at', filter.from);
@@ -643,10 +672,51 @@ export async function createAppointment(input: CreateAppointmentInput): Promise<
   return mapAppointment(data);
 }
 
+export async function updateAppointment(input: UpdateAppointmentInput): Promise<Appointment> {
+  const payload: Record<string, unknown> = {
+    patient_id: input.patientId,
+    starts_at: input.startsAt,
+    ends_at: input.endsAt,
+    visit_type: input.visitType,
+    notes: input.notes ?? null,
+  };
+
+  if (typeof input.dentistId !== 'undefined') {
+    payload.dentist_id = input.dentistId;
+  }
+
+  if (typeof input.clinicId !== 'undefined') {
+    payload.clinic_id = input.clinicId;
+  }
+
+  if (typeof input.status !== 'undefined') {
+    payload.status = input.status;
+  }
+
+  const { data, error } = await supabase
+    .from('appointments')
+    .update(payload)
+    .eq('id', input.appointmentId)
+    .select(APPOINTMENT_SELECT)
+    .single();
+
+  if (error) throw error;
+  return mapAppointment(data);
+}
+
+export async function deleteAppointment(appointmentId: string): Promise<void> {
+  const { error } = await supabase
+    .from('appointments')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', appointmentId);
+  if (error) throw error;
+}
+
 export async function fetchTreatmentCatalog(): Promise<TreatmentCatalogItem[]> {
   const { data, error } = await supabase
     .from('treatments')
     .select(TREATMENT_SELECT)
+    .is('deleted_at', null)
     .eq('is_active', true)
     .order('name', { ascending: true });
 
@@ -726,6 +796,7 @@ export async function createBudgetFromTreatments(
   const treatments = await supabase
     .from('patient_treatments')
     .select('id, proposed_price, final_price')
+    .is('deleted_at', null)
     .in('id', input.treatmentIds);
 
   if (treatments.error) throw treatments.error;
@@ -786,6 +857,7 @@ export async function fetchPendingTreatments(
       patients:patients(${PATIENT_COLUMNS})
     `
     )
+    .is('deleted_at', null)
     .in('status', ['planned', 'accepted', 'scheduled'])
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -803,9 +875,13 @@ export interface BudgetFilter {
 }
 
 export async function fetchBudgets(filter: BudgetFilter = {}): Promise<Budget[]> {
-  let query = supabase.from('budgets').select(BUDGET_SELECT).order('created_at', {
-    ascending: false,
-  });
+  let query = supabase
+    .from('budgets')
+    .select(BUDGET_SELECT)
+    .is('deleted_at', null)
+    .order('created_at', {
+      ascending: false,
+    });
 
   if (filter.patientId) {
     query = query.eq('patient_id', filter.patientId);
@@ -831,6 +907,7 @@ export async function fetchTreatmentAssignments(
     .from('patient_treatments')
     .select(PATIENT_TREATMENT_SELECT)
     .eq('patient_id', patientId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -849,6 +926,7 @@ export async function fetchTodayAppointments(): Promise<Appointment[]> {
     .select(APPOINTMENT_SELECT)
     .gte('starts_at', start.toISOString())
     .lte('starts_at', end.toISOString())
+    .is('deleted_at', null)
     .order('starts_at', { ascending: true });
 
   if (error) throw error;
@@ -874,7 +952,11 @@ export async function savePatientDentogramEntries(
   patientId: string,
   entries: DentogramEntryInput[]
 ): Promise<void> {
-  await supabase.from('patient_dentograms').delete().eq('evaluation_id', evaluationId);
+  const deletedAt = new Date().toISOString();
+  await supabase
+    .from('patient_dentograms')
+    .update({ deleted_at: deletedAt })
+    .eq('evaluation_id', evaluationId);
 
   if (entries.length === 0) {
     return;

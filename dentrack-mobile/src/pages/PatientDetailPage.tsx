@@ -25,6 +25,7 @@ import {
   mailOutline,
   arrowBackOutline,
   addOutline,
+  createOutline,
   calendarOutline,
   medkitOutline,
   cashOutline,
@@ -43,7 +44,7 @@ import { CreateBudgetModal } from '@/features/budgets/CreateBudgetModal';
 import { BudgetDetailModal } from '@/features/budgets/BudgetDetailModal';
 import { WhatsAppComposer } from '@/features/whatsapp/WhatsAppComposer';
 import { AddAppointmentModal } from '@/features/appointments/AddAppointmentModal';
-import type { Budget, PatientEvaluation, PatientTreatment } from '@/types/domain';
+import type { Appointment, Budget, PatientEvaluation, PatientTreatment } from '@/types/domain';
 import { openExternalUrl } from '@/lib/platform';
 import { PatientEvaluationModal } from '@/features/evaluations/PatientEvaluationModal';
 import { PatientEvaluationCard } from '@/features/evaluations/PatientEvaluationCard';
@@ -68,7 +69,9 @@ export function PatientDetailPage() {
   const [completeTreatment, setCompleteTreatment] = useState<PatientTreatment | null>(null);
   const [isBudgetModalOpen, setBudgetModalOpen] = useState(false);
   const [showWhatsApp, setShowWhatsApp] = useState(false);
-  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [appointmentModalState, setAppointmentModalState] = useState<
+    { appointment?: Appointment; defaultPatientId?: string } | null
+  >(null);
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [isEvaluationModalOpen, setEvaluationModalOpen] = useState(false);
   const [evaluationToEdit, setEvaluationToEdit] = useState<PatientEvaluation | null>(null);
@@ -119,6 +122,18 @@ export function PatientDetailPage() {
     setEvaluationToEdit(null);
   }
 
+  function openNewAppointmentModal() {
+    setAppointmentModalState({ defaultPatientId: patient.id });
+  }
+
+  function openAppointmentEditor(appointment: Appointment) {
+    setAppointmentModalState({ appointment });
+  }
+
+  function closeAppointmentModal() {
+    setAppointmentModalState(null);
+  }
+
   return (
     <PageLayout
       title="Datos del paciente"
@@ -128,7 +143,7 @@ export function PatientDetailPage() {
         </IonButton>
       }
       toolbarEndSlot={
-        <IonButton fill="clear" onClick={() => setShowAppointmentModal(true)}>
+        <IonButton fill="clear" onClick={openNewAppointmentModal}>
           <IonIcon icon={addOutline} slot="icon-only" />
         </IonButton>
       }
@@ -233,7 +248,19 @@ export function PatientDetailPage() {
                     <h2>{formatDateTime(visit.startsAt)}</h2>
                     <p style={{ margin: 0 }}>{visit.notes || 'Sin notas'}</p>
                   </IonLabel>
-                  <IonBadge color="tertiary">{visit.visitType}</IonBadge>
+                  <div
+                    slot="end"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <IonBadge color="tertiary">{visit.visitType}</IonBadge>
+                    <IonButton
+                      fill="clear"
+                      size="small"
+                      onClick={() => openAppointmentEditor(visit)}
+                    >
+                      <IonIcon icon={createOutline} slot="icon-only" />
+                    </IonButton>
+                  </div>
                 </IonItem>
               ))}
             </IonList>
@@ -404,9 +431,10 @@ export function PatientDetailPage() {
         onDismiss={() => setSelectedBudget(null)}
       />
       <AddAppointmentModal
-        isOpen={showAppointmentModal}
-        onDismiss={() => setShowAppointmentModal(false)}
-        defaultPatientId={patient.id}
+        isOpen={Boolean(appointmentModalState)}
+        onDismiss={closeAppointmentModal}
+        defaultPatientId={appointmentModalState?.defaultPatientId ?? patient.id}
+        appointment={appointmentModalState?.appointment}
       />
       <WhatsAppComposer
         patient={patient}

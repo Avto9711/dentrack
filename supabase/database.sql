@@ -15,7 +15,8 @@ CREATE TABLE public.clinics (
   phone       text,
   email       text,
   address     text,
-  created_at  timestamptz NOT NULL DEFAULT now()
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  deleted_at  timestamptz
 );
 
 
@@ -29,7 +30,8 @@ CREATE TABLE public.profiles (
   full_name   text NOT NULL,
   role        text NOT NULL CHECK (role IN ('admin', 'dentist', 'assistant')),
   created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at      timestamptz NOT NULL DEFAULT now()
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  deleted_at      timestamptz
 );
 
 -- =======================
@@ -48,7 +50,8 @@ CREATE TABLE public.patients (
   notes           text,
   created_by      uuid REFERENCES public.profiles (id),
   created_at      timestamptz NOT NULL DEFAULT now(),
-  updated_at      timestamptz NOT NULL DEFAULT now()
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  deleted_at      timestamptz
 );
 
 CREATE INDEX idx_patients_clinic ON public.patients (clinic_id);
@@ -73,7 +76,8 @@ CREATE TABLE public.budgets (
   valid_until date,
   notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz
 );
 
 CREATE INDEX idx_budgets_patient ON public.budgets (patient_id);
@@ -99,7 +103,8 @@ CREATE TABLE public.treatments (
   default_duration_minutes integer,
   is_active       boolean NOT NULL DEFAULT true,
   created_at      timestamptz NOT NULL DEFAULT now(),
-  updated_at      timestamptz NOT NULL DEFAULT now()
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  deleted_at      timestamptz
 );
 
 CREATE INDEX idx_treatments_clinic ON public.treatments (clinic_id);
@@ -121,7 +126,8 @@ CREATE TABLE public.appointments (
                   CHECK (visit_type IN ('evaluation', 'treatment', 'control', 'other')),
   notes           text,
   created_at      timestamptz NOT NULL DEFAULT now(),
-  updated_at      timestamptz NOT NULL DEFAULT now()
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  deleted_at      timestamptz
 );
 
 CREATE INDEX idx_appointments_patient ON public.appointments (patient_id);
@@ -148,7 +154,8 @@ CREATE TABLE public.patient_treatments (
 
   notes text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz
 );
 
 CREATE INDEX idx_pt_patient ON public.patient_treatments (patient_id);
@@ -163,7 +170,8 @@ CREATE TABLE public.budget_items (
   budget_id uuid NOT NULL REFERENCES public.budgets(id) ON DELETE CASCADE,
   patient_treatment_id uuid NOT NULL REFERENCES public.patient_treatments(id),
   agreed_price numeric(10,2) NOT NULL,
-  created_at timestamptz DEFAULT now()
+  created_at timestamptz DEFAULT now(),
+  deleted_at timestamptz
 );
 
 CREATE INDEX idx_budget_items_budget ON public.budget_items (budget_id);
@@ -174,7 +182,7 @@ CREATE INDEX idx_budget_items_budget ON public.budget_items (budget_id);
 CREATE TABLE public.whatsapp_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   clinic_id uuid REFERENCES public.clinics(id),
-  patient_id uuid REFERENCES public.patients(id),
+  patient_id uuid REFERENCES public.patients(id) ON DELETE CASCADE,
   appointment_id uuid REFERENCES public.appointments(id),
 
   phone text NOT NULL,
@@ -182,7 +190,8 @@ CREATE TABLE public.whatsapp_logs (
   opened_url_at timestamptz,
   created_by uuid REFERENCES public.profiles(id),
 
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz
 );
 
 CREATE INDEX idx_whatsapp_patient ON public.whatsapp_logs (patient_id);
@@ -239,7 +248,8 @@ CREATE TABLE public.patient_evaluations (
   plan_other text,
   dentist_signature text,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz
 );
 
 CREATE INDEX idx_patient_evaluations_patient ON public.patient_evaluations (patient_id);
@@ -252,7 +262,8 @@ CREATE TABLE IF NOT EXISTS public.patient_dentograms (
   tooth_number text NOT NULL,
   surface text NOT NULL,
   finding text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz
 );
 
 CREATE INDEX IF NOT EXISTS idx_patient_dentograms_patient ON public.patient_dentograms (patient_id);
@@ -272,3 +283,245 @@ WHERE pe.dentogram IS NOT NULL;
 
 ALTER TABLE public.patient_evaluations
   DROP COLUMN IF EXISTS dentogram;
+
+
+-- =======================
+-- Row Level Security Helpers
+-- =======================
+CREATE OR REPLACE FUNCTION public.has_staff_profile()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.deleted_at IS NULL
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.role = 'admin'
+      and p.deleted_at IS NULL
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.has_staff_profile() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.has_staff_profile() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, service_role;
+
+
+-- =======================
+-- Enable Row Level Security
+-- =======================
+ALTER TABLE public.clinics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.treatments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patient_treatments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.budget_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whatsapp_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patient_evaluations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patient_dentograms ENABLE ROW LEVEL SECURITY;
+
+
+-- =======================
+-- RLS Policies
+-- =======================
+CREATE POLICY clinics_staff_read
+  ON public.clinics
+  FOR SELECT
+  TO authenticated
+  USING (public.has_staff_profile());
+
+CREATE POLICY clinics_admin_all
+  ON public.clinics
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY clinics_service_all
+  ON public.clinics
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY profiles_self_read
+  ON public.profiles
+  FOR SELECT
+  TO authenticated
+  USING (id = auth.uid());
+
+CREATE POLICY profiles_admin_all
+  ON public.profiles
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY profiles_service_all
+  ON public.profiles
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY patients_staff_all
+  ON public.patients
+  FOR ALL
+  TO authenticated
+  USING (public.has_staff_profile())
+  WITH CHECK (public.has_staff_profile());
+
+CREATE POLICY patients_service_all
+  ON public.patients
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY treatments_staff_read
+  ON public.treatments
+  FOR SELECT
+  TO authenticated
+  USING (public.has_staff_profile());
+
+CREATE POLICY treatments_admin_all
+  ON public.treatments
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY treatments_service_all
+  ON public.treatments
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY appointments_staff_all
+  ON public.appointments
+  FOR ALL
+  TO authenticated
+  USING (public.has_staff_profile())
+  WITH CHECK (public.has_staff_profile());
+
+CREATE POLICY appointments_service_all
+  ON public.appointments
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY patient_treatments_staff_all
+  ON public.patient_treatments
+  FOR ALL
+  TO authenticated
+  USING (public.has_staff_profile())
+  WITH CHECK (public.has_staff_profile());
+
+CREATE POLICY patient_treatments_service_all
+  ON public.patient_treatments
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY budgets_staff_all
+  ON public.budgets
+  FOR ALL
+  TO authenticated
+  USING (public.has_staff_profile())
+  WITH CHECK (public.has_staff_profile());
+
+CREATE POLICY budgets_service_all
+  ON public.budgets
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY budget_items_staff_all
+  ON public.budget_items
+  FOR ALL
+  TO authenticated
+  USING (public.has_staff_profile())
+  WITH CHECK (public.has_staff_profile());
+
+CREATE POLICY budget_items_service_all
+  ON public.budget_items
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY whatsapp_logs_staff_all
+  ON public.whatsapp_logs
+  FOR ALL
+  TO authenticated
+  USING (public.has_staff_profile())
+  WITH CHECK (public.has_staff_profile());
+
+CREATE POLICY whatsapp_logs_service_all
+  ON public.whatsapp_logs
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY patient_evaluations_staff_all
+  ON public.patient_evaluations
+  FOR ALL
+  TO authenticated
+  USING (public.has_staff_profile())
+  WITH CHECK (public.has_staff_profile());
+
+CREATE POLICY patient_evaluations_service_all
+  ON public.patient_evaluations
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
+CREATE POLICY patient_dentograms_staff_all
+  ON public.patient_dentograms
+  FOR ALL
+  TO authenticated
+  USING (public.has_staff_profile())
+  WITH CHECK (public.has_staff_profile());
+
+CREATE POLICY patient_dentograms_service_all
+  ON public.patient_dentograms
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);

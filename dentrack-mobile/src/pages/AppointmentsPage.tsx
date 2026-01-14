@@ -11,6 +11,7 @@ import {
   IonItem,
   IonBadge,
   IonText,
+  IonButton,
   IonFab,
   IonFabButton,
   IonIcon,
@@ -18,7 +19,7 @@ import {
   IonRefresherContent,
 } from '@ionic/react';
 import type { RefresherEventDetail } from '@ionic/react';
-import { addOutline } from 'ionicons/icons';
+import { addOutline, createOutline } from 'ionicons/icons';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { fetchAppointments, type AppointmentFilter } from '@/lib/api';
@@ -26,6 +27,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { PageLayout } from '@/components/PageLayout';
 import { formatDateTime } from '@/utils/date';
 import { AddAppointmentModal } from '@/features/appointments/AddAppointmentModal';
+import type { Appointment } from '@/types/domain';
 
 const segments = [
   { value: 'today', label: 'Hoy' },
@@ -36,7 +38,7 @@ const segments = [
 export function AppointmentsPage() {
   const navigate = useNavigate();
   const [segment, setSegment] = useState<(typeof segments)[number]['value']>('today');
-  const [showModal, setShowModal] = useState(false);
+  const [appointmentModalState, setAppointmentModalState] = useState<{ appointment?: Appointment } | null>(null);
 
   const filter = useMemo<AppointmentFilter>(() => {
     const now = new Date();
@@ -66,6 +68,18 @@ export function AppointmentsPage() {
 
   function handleRefresh(event: CustomEvent<RefresherEventDetail>) {
     appointmentsQuery.refetch().finally(() => event.detail.complete());
+  }
+
+  function openCreateModal() {
+    setAppointmentModalState({});
+  }
+
+  function openEditModal(appointment: Appointment) {
+    setAppointmentModalState({ appointment });
+  }
+
+  function closeModal() {
+    setAppointmentModalState(null);
   }
 
   return (
@@ -104,18 +118,37 @@ export function AppointmentsPage() {
                   <h2>{appointment.patient?.fullName ?? 'Paciente'}</h2>
                   <p>{formatDateTime(appointment.startsAt)}</p>
                 </IonLabel>
-                <IonBadge color="tertiary">{appointment.visitType}</IonBadge>
+                <div
+                  slot="end"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  <IonBadge color="tertiary">{appointment.visitType}</IonBadge>
+                  <IonButton
+                    fill="clear"
+                    size="small"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openEditModal(appointment);
+                    }}
+                  >
+                    <IonIcon icon={createOutline} slot="icon-only" />
+                  </IonButton>
+                </div>
               </IonItem>
             ))}
           </IonList>
         </IonCardContent>
       </IonCard>
       <IonFab slot="fixed" vertical="bottom" horizontal="end">
-        <IonFabButton onClick={() => setShowModal(true)}>
+        <IonFabButton onClick={openCreateModal}>
           <IonIcon icon={addOutline} />
         </IonFabButton>
       </IonFab>
-      <AddAppointmentModal isOpen={showModal} onDismiss={() => setShowModal(false)} />
+      <AddAppointmentModal
+        isOpen={Boolean(appointmentModalState)}
+        onDismiss={closeModal}
+        appointment={appointmentModalState?.appointment}
+      />
     </PageLayout>
   );
 }

@@ -1,10 +1,19 @@
 import { supabase } from '@/lib/supabaseClient';
 import type { Appointment, Budget, Clinic, Doctor, Patient, Treatment } from '@/lib/types';
 
+async function softDelete(table: string, id: string) {
+  const { error } = await supabase
+    .from(table)
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 export async function fetchPatients(search?: string): Promise<Patient[]> {
   let query = supabase
     .from('patients')
     .select('id, first_name, last_name, phone, email, updated_at')
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false })
     .limit(50);
 
@@ -31,6 +40,7 @@ export async function fetchDoctors(): Promise<Doctor[]> {
     .from('profiles')
     .select('id, full_name, role, created_at, clinic_id, clinic:clinics(name)')
     .eq('role', 'dentist')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) throw error;
@@ -48,6 +58,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
   const { data, error } = await supabase
     .from('appointments')
     .select('id, starts_at, status, visit_type, patients(first_name, last_name)')
+    .is('deleted_at', null)
     .order('starts_at', { ascending: false })
     .limit(50);
   if (error) throw error;
@@ -73,6 +84,7 @@ export async function fetchBudgets(valid?: boolean): Promise<Budget[]> {
   let query = supabase
     .from('budgets')
     .select('id, total_amount, currency_code, status, valid_until, patients(first_name, last_name)')
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false })
     .limit(50);
 
@@ -105,9 +117,9 @@ export async function fetchBudgets(valid?: boolean): Promise<Budget[]> {
 
 export async function fetchDashboardStats() {
   const [patientsCount, appointmentsCount, budgetsCount] = await Promise.all([
-    supabase.from('patients').select('*', { count: 'exact', head: true }),
-    supabase.from('appointments').select('*', { count: 'exact', head: true }),
-    supabase.from('budgets').select('*', { count: 'exact', head: true }),
+    supabase.from('patients').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+    supabase.from('appointments').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+    supabase.from('budgets').select('*', { count: 'exact', head: true }).is('deleted_at', null),
   ]);
 
   return {
@@ -121,6 +133,7 @@ export async function fetchClinics(): Promise<Clinic[]> {
   const { data, error } = await supabase
     .from('clinics')
     .select('id, name, phone, email, address, created_at')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as Clinic[];
@@ -130,6 +143,7 @@ export async function fetchTreatments(): Promise<Treatment[]> {
   const { data, error } = await supabase
     .from('treatments')
     .select('id, name, code, description, default_price, default_duration_minutes, is_active, clinic_id, created_at')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(100);
   if (error) throw error;
@@ -253,8 +267,7 @@ export async function updateClinic(input: {
 }
 
 export async function deleteClinic(id: string) {
-  const { error } = await supabase.from('clinics').delete().eq('id', id);
-  if (error) throw error;
+  await softDelete('clinics', id);
 }
 
 export async function updatePatient(input: {
@@ -285,8 +298,7 @@ export async function updatePatient(input: {
 }
 
 export async function deletePatient(id: string) {
-  const { error } = await supabase.from('patients').delete().eq('id', id);
-  if (error) throw error;
+  await softDelete('patients', id);
 }
 
 export async function updateDoctor(input: {
@@ -313,8 +325,7 @@ export async function updateDoctor(input: {
 }
 
 export async function deleteDoctor(id: string) {
-  const { error } = await supabase.from('profiles').delete().eq('id', id);
-  if (error) throw error;
+  await softDelete('profiles', id);
 }
 
 export async function updateTreatment(input: {
@@ -344,6 +355,5 @@ export async function updateTreatment(input: {
 }
 
 export async function deleteTreatment(id: string) {
-  const { error } = await supabase.from('treatments').delete().eq('id', id);
-  if (error) throw error;
+  await softDelete('treatments', id);
 }
