@@ -123,6 +123,7 @@ export function PatientDetailPage() {
   }
 
   function openNewAppointmentModal() {
+    if (!patient) return;
     setAppointmentModalState({ defaultPatientId: patient.id });
   }
 
